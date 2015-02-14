@@ -26,7 +26,7 @@ if test ! -d /srv/benchmarks/scipy; then
 fi
 pushd scipy/benchmarks
 sudo -H -u runner git pull --ff-only
-while true; do echo; done | sudo -H -u runner PATH=$PATH:/srv/benchmarks/.local/bin python run.py --current-repo run -k ALL
+while true; do echo; done | sudo -H -u runner PATH=$PATH:/srv/benchmarks/.local/bin python run.py --current-repo run -k
 }
 run < /dev/null > /var/log/benchmark.log 2>&1
 EOF
