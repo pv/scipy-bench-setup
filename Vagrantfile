@@ -7,7 +7,7 @@ VAGRANTFILE_API_VERSION = "2"
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   bootstrap = <<__EOF__
 set -e
-apt-get install -y python2.7-dev python-numpy libopenblas-dev gfortran git python-six python-pip ccache python-virtualenv
+apt-get install -y python2.7-dev python-numpy libatlas-base-dev gfortran git python-six python-pip ccache python-virtualenv
 apt-get --purge remove -y nfs-common rpcbind
 adduser --system --home /srv/benchmarks runner
 umount /srv/results
@@ -27,11 +27,11 @@ fi
 pushd scipy/benchmarks
 sudo -H -u runner git pull --ff-only
 while true; do echo; done | sudo -H -u runner PATH=$PATH:/srv/benchmarks/.local/bin python run.py --current-repo run -k ALL
+}
+run < /dev/null > /var/log/benchmark.log 2>&1
 EOF
 chmod a+rx /etc/cron.daily/run-benchmarks
 popd
-}
-run < /dev/null > /var/log/benchmark.log 2>&1
 __EOF__
 
   config.vm.box = "ubuntu/trusty64"
