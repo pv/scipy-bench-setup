@@ -1,0 +1,14 @@
+#!/bin/bash
+set -e
+
+pushd /srv/asv
+
+if test ! -d scipy; then
+   git clone https://github.com/scipy/scipy.git scipy
+fi
+
+pushd scipy/benchmarks
+git pull --ff-only
+rm -rf results
+ln -s /srv/results results
+exec ./run.py "$@"

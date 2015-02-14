@@ -38,4 +38,8 @@ __EOF__
   config.vm.box_url = "https://cloud-images.ubuntu.com/vagrant/trusty/current/trusty-server-cloudimg-amd64-vagrant-disk1.box"
   config.vm.provision :shell, inline: bootstrap
   config.vm.synced_folder "results", "/srv/results"
+
+  config.vm.provider "virtualbox" do |vb|
+    vb.customize ["modifyvm", :id, "--memory", "1200"]
+  end
 end
