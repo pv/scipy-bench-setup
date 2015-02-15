@@ -14,6 +14,9 @@ Setting up::
     ssh-keygen -f deploy-key   # don't set a passphrase
 
 The ssh deployment key is needed to push changes to the results repository.
+Github allows repository specific deployment keys, which are very suitable
+here.  The key needs to be added to the list of allowed keys for the
+``scipy-bench`` results repository.
 
 Running benchmarks::
 
