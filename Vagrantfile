@@ -15,7 +15,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 set -e
 echo "#{hostname}" > /etc/hostname
 hostname "#{hostname}"
-apt-get install -y python2.7-dev python-numpy libatlas-base-dev gfortran git python-six python-pip ccache python-virtualenv
+apt-get install -y python2.7-dev python-numpy libatlas-base-dev gfortran git python-six python-pip ccache python-virtualenv rsync
 apt-get --purge remove -y nfs-common rpcbind
 adduser --system --uid 510 --home /srv/benchmarks runner
 sudo -H -u runner git clone --depth 2 https://github.com/spacetelescope/asv.git /srv/benchmarks/asv
@@ -31,7 +31,10 @@ run() {
     fi
     pushd scipy/benchmarks
     sudo -H -u runner git pull --ff-only
-    while true; do echo; done | exec sudo -H -u runner PATH=\\$PATH:/srv/benchmarks/.local/bin python run.py --current-repo "\\$@"
+    while true; do echo; done | sudo -H -u runner PATH=\\$PATH:/srv/benchmarks/.local/bin python run.py --current-repo "\\$@"
+    sudo -H -u runner PATH=\\$PATH:/srv/benchmarks/.local/bin python run.py --current-repo publish
+    rm -rf /srv/html/*
+    rsync -a html/ /srv/html/
 }
 run "\\$@"
 EOF
@@ -43,6 +46,7 @@ __EOF__
   config.vm.provision :shell, inline: bootstrap
   config.vm.synced_folder ".", "/vagrant", disabled: true
   config.vm.synced_folder "results", "/srv/results", owner: 510
+  config.vm.synced_folder "html", "/srv/html", owner: 510
 
   config.vm.provider "virtualbox" do |vb|
     vb.customize ["modifyvm", :id, "--memory", "2000"]

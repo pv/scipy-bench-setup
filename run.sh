@@ -20,7 +20,8 @@ if test ! -d scipy-bench; then
     git clone git@github.com:pv/scipy-bench.git scipy-bench
 fi
 
-mkdir -p results
+rm -rf html
+mkdir -p results html
 rsync -a --delete scipy-bench/results/ results/
 
 vagrant up
@@ -34,3 +35,18 @@ git add -u results
 git add results
 git commit -m "New results" -a || true
 git push
+popd
+
+if test -f html/index.json; then
+    rm -rf scipy-bench-html
+    git clone --shared -b master scipy-bench scipy-bench-html
+    pushd scipy-bench-html
+    git branch -D gh-pages || true
+    git checkout --orphan gh-pages
+    rsync -a ../html/ ./
+    git add -f .
+    git commit -m "Generated from sources"
+    git push -f origin gh-pages
+    popd
+    rm -rf scipy-bench-html
+fi
