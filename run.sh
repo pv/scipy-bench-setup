@@ -28,6 +28,8 @@ vagrant up
 vagrant ssh -c "sudo -- /usr/local/bin/run-benchmarks $*"
 vagrant suspend
 
+git -C scipy-bench pull --ff-only origin master
+
 rsync -a --delete results/ scipy-bench/results/ 
 
 pushd scipy-bench
