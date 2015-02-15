@@ -1,2 +1,4 @@
 *~
 /.vagrant
+/deploy-key
+/hostname
