@@ -2,3 +2,5 @@
 /.vagrant
 /deploy-key
 /hostname
+/results
+/scipy-bench
