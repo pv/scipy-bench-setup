@@ -34,13 +34,15 @@ pushd scipy-bench
 git add -u results
 git add results
 git commit -m "New results" -a || true
-git push
+git push origin master
 popd
 
 if test -f html/index.json; then
     rm -rf scipy-bench-html
-    git clone --shared -b master scipy-bench scipy-bench-html
+    git clone -b master scipy-bench scipy-bench-html
     pushd scipy-bench-html
+    git remote rm origin
+    git remote add origin git@github.com:pv/scipy-bench.git
     git branch -D gh-pages || true
     git checkout --orphan gh-pages
     rsync -a ../html/ ./
