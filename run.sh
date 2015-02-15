@@ -9,7 +9,7 @@ if test ! -f 'hostname'; then
 fi
 
 if test ! -f 'deploy-key'; then
-    echo "Create a file 'deploy-key' containing the SSH deployment key for uploads"
+    echo "Create SSH deployment key for uploads, running ssh-keygen -f deploy-key"
     exit 1
 fi
 
@@ -31,5 +31,6 @@ rsync -a --delete results/ scipy-bench/results/
 
 pushd scipy-bench
 git add -u results
-git commit -m "New results" -a
+git add results
+git commit -m "New results" -a || true
 git push
