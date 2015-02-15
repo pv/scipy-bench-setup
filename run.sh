@@ -25,7 +25,7 @@ mkdir -p results html
 rsync -a --delete scipy-bench/results/ results/
 
 vagrant up
-vagrant ssh -c "sudo -- /usr/local/bin/run-benchmarks $*"
+vagrant ssh -c "sudo -- /usr/local/bin/run-benchmarks $*" || { vagrant suspend; exit 1; }
 vagrant suspend
 
 git -C scipy-bench pull --ff-only origin master
