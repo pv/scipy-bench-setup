@@ -15,7 +15,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 set -e
 echo "#{hostname}" > /etc/hostname
 hostname "#{hostname}"
-apt-get install -y python2.7-dev python-numpy libatlas-base-dev gfortran git python-six python-pip ccache python-virtualenv rsync
+apt-get install -y python2.7-dev python-numpy libatlas-base-dev gfortran git python-six python-pip ccache python-virtualenv rsync subversion
 apt-get --purge remove -y nfs-common rpcbind
 adduser --system --uid 510 --home /srv/benchmarks runner
 sudo -H -u runner git clone --depth 2 https://github.com/spacetelescope/asv.git /srv/benchmarks/asv
