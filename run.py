@@ -31,7 +31,8 @@ except ImportError:  # py2
 IMG_BASEFN = "trusty-server-cloudimg-amd64-vagrant-disk1.box"
 IMG_URL = "https://cloud-images.ubuntu.com/vagrant/trusty/current/"+IMG_BASEFN
 BOX_NAME = 'scipy-bench-trusty64'
-RESULTS_REPO = 'git@github.com:pv/scipy-bench.git'
+RESULTS_REPO_CLONEURL = 'https://github.com/pv/scipy-bench.git'
+RESULTS_REPO_UPLOADURL = 'git@github.com:pv/scipy-bench.git'
 
 
 def main():
@@ -56,11 +57,10 @@ def do_initial_run():
 
 
 def do_cron():
-    print("-- Starting initial run")
     with open('benchmark.log', 'wb') as f:
         with redirect_stream(sys.stdout, f):
             with redirect_stream(sys.stderr, sys.stdout):
-                run_vm_asv('run', '-k', 'NEW')
+                run_vm_asv(['run', '-k', 'NEW'])
 
 
 def do_populate():
@@ -163,16 +163,18 @@ def run_vm_asv(cmd, upload=True):
     }
 
     if not os.path.isdir('scipy-bench'):
-        run(['git', 'clone', RESULTS_REPO, 'scipy-bench'])
+        run(['git', 'clone', RESULTS_REPO_CLONEURL, 'scipy-bench'])
+        run(['git', 'remote', 'add', 'upload', RESULTS_REPO_UPLOADURL],
+            cwd='scipy-bench')
 
     if os.path.exists('html'):
         shutil.rmtree('html')
     os.makedirs('html')
 
     if not os.path.isdir('results'):
-        os.makedirs('results')
+        os.symlink('scipy-bench/results', 'results')
 
-    run(['rsync', '-a', '--delete', 'scipy-bench/results/', 'results/'])
+    run(['git', '-C', 'scipy-bench', 'pull', 'origin', 'master'])
 
     cmd = ['sudo', '--', '/usr/local/bin/run-benchmarks'] + cmd
 
@@ -182,24 +184,23 @@ def run_vm_asv(cmd, upload=True):
     finally:
         run(['vagrant', 'suspend'])
 
-    run(['git', '-C', 'scipy-bench', 'pull', '--ff-only', 'origin', 'master'])
-    run(['rsync', '-a', '--delete', 'results/', 'scipy-bench/results/'])
-
     run("""
+    git pull origin master
+    git checkout master
     git add -u results
     git add results
     git commit -m "New results" -a || true
     """, cwd='scipy-bench')
 
     if upload:
-        run("git push origin master", cwd='scipy-bench')
+        run("git push upload master", cwd='scipy-bench')
         run("""
         rm -rf scipy-bench-html
         git clone -b master scipy-bench scipy-bench-html
         """)
+        run(['git', 'remote', 'rm', 'origin'], cwd='scipy-bench-html')
+        run(['git', 'remote', 'add', 'origin', RESULTS_REPO_UPLOADURL], cwd='scipy-bench-html')
         run("""
-        git remote rm origin
-        git remote add origin git@github.com:pv/scipy-bench.git
         git branch -D gh-pages || true
         git checkout --orphan gh-pages
         rsync -a ../html/ ./
@@ -219,8 +220,13 @@ def run(cmd, output=False, **kw):
             if line:
                 run([line], shell=True, **kw)
         return
-    
-    print("$", " ".join(cmd))
+
+    cmd_msg = " ".join(quote(x) for x in cmd)
+    if 'cwd' in kw:
+        print(kw['cwd'], "$", cmd_msg)
+    else:
+        print("$", cmd_msg)
+
     if not output:
         subprocess.check_call(cmd, **kw)
         return None
@@ -230,15 +236,33 @@ def run(cmd, output=False, **kw):
 
 @contextmanager
 def redirect_stream(stream, to):
-    stream_fd = stream.fileno
-    with os.fdopen(os.dup(stream_fd), 'wb') as copied: 
-        stream.flush()
-        os.dup2(to.fileno, stream_fd)
-        try:
-            yield stream
-        finally:
+    # Disable buffering from stdout and stderr
+    stream_unbuffer = None
+    old_stream = stream
+    if stream is sys.stdout:
+        stream_unbuffer = 'stdout'
+        sys.stdout = os.fdopen(stream.fileno(), 'w', 0)
+    elif stream is sys.stderr:
+        stream_unbuffer = 'stderr'
+        sys.stderr = os.fdopen(stream.fileno(), 'w', 0)
+
+    try:
+        # Redirect stream fd
+        stream_fd = stream.fileno()
+        with os.fdopen(os.dup(stream_fd), 'wb', 0) as copied:
             stream.flush()
-            os.dup2(copied.fileno(), stream_fd)
+            os.dup2(to.fileno(), stream_fd)
+            try:
+                yield stream
+            finally:
+                stream.flush()
+                os.dup2(copied.fileno(), stream_fd)
+    finally:
+        # Restore original buffered streams
+        if stream_unbuffer == 'stdout':
+            sys.stdout = old_stream
+        elif stream_unbuffer == 'stderr':
+            sys.stderr = old_stream
 
 
 if __name__ == "__main__":
