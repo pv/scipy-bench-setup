@@ -16,8 +16,9 @@ set -e
 echo "#{hostname}" > /etc/hostname
 hostname "#{hostname}"
 apt-get install -y python2.7-dev python-numpy libopenblas-dev liblapack-dev gfortran git python-six python-pip ccache python-virtualenv rsync subversion
-apt-get --purge remove -y nfs-common rpcbind
+apt-get --purge remove -y nfs-common rpcbind mlocate apt-xapian-index aptitude unattended-upgrades
 apt-get clean
+echo 'APT::Periodic::Update-Package-Lists "0";' > /etc/apt/apt.conf.d/10periodic
 adduser --system --uid 510 --home /srv/benchmarks runner
 sudo -H -u runner git clone --depth 2 https://github.com/spacetelescope/asv.git /srv/benchmarks/asv
 sudo -H -u runner pip install --no-index --user /srv/benchmarks/asv
