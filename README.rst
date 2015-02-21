@@ -20,8 +20,8 @@ here.  The key needs to be added to the list of allowed keys for the
 
 Running benchmarks::
 
-    ./run.sh run -k master^!
+    ./run.py run -k master^!
 
 Daily cron::
 
-    su -s /bin/sh -c "/PATH/TO/HERE/cron.sh" - USER
+    su -s /bin/sh -c "/PATH/TO/HERE/run.py cron" - USER
