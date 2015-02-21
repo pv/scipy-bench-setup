@@ -1,5 +1,6 @@
 *~
 *.log
+*.box
 /.vagrant
 /deploy-key
 /deploy-key.pub
