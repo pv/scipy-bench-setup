@@ -17,6 +17,7 @@ echo "#{hostname}" > /etc/hostname
 hostname "#{hostname}"
 apt-get install -y python2.7-dev python-numpy libopenblas-dev liblapack-dev gfortran git python-six python-pip ccache python-virtualenv rsync subversion
 apt-get --purge remove -y nfs-common rpcbind
+apt-get clean
 adduser --system --uid 510 --home /srv/benchmarks runner
 sudo -H -u runner git clone --depth 2 https://github.com/spacetelescope/asv.git /srv/benchmarks/asv
 sudo -H -u runner pip install --no-index --user /srv/benchmarks/asv
@@ -41,8 +42,7 @@ EOF
 chmod a+rx /usr/local/bin/run-benchmarks
 __EOF__
 
-  config.vm.box = "ubuntu/trusty64"
-  config.vm.box_url = "https://cloud-images.ubuntu.com/vagrant/trusty/current/trusty-server-cloudimg-amd64-vagrant-disk1.box"
+  config.vm.box = "scipy-bench-trusty64"
   config.vm.provision :shell, inline: bootstrap
   config.vm.synced_folder ".", "/vagrant", disabled: true
   config.vm.synced_folder "results", "/srv/results", owner: 510
