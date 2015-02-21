@@ -156,10 +156,11 @@ def run_vm_asv(cmd, upload=True):
 
     print("-- Doing an ASV run")
 
-    env = {
+    env = dict(os.environ)
+    env.update({
         'WORKDIR': os.getcwd(),
         'GIT_SSH': os.getcwd() + '/git-ssh'
-    }
+    })
 
     if not os.path.isdir('scipy-bench'):
         run(['git', 'clone', RESULTS_REPO_CLONEURL, 'scipy-bench'])
@@ -192,7 +193,7 @@ def run_vm_asv(cmd, upload=True):
     """, cwd='scipy-bench')
 
     if upload:
-        run("git push upload master", cwd='scipy-bench')
+        run("git push upload master", cwd='scipy-bench', env=env)
         run("""
         rm -rf scipy-bench-html
         git clone -b master scipy-bench scipy-bench-html
@@ -206,7 +207,7 @@ def run_vm_asv(cmd, upload=True):
         git add -f .
         git commit -m "Generated from sources"
         git push -f origin gh-pages
-        """, cwd='scipy-bench-html')
+        """, cwd='scipy-bench-html', env=env)
         run("rm -rf scipy-bench-html")
 
 
