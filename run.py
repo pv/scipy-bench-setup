@@ -19,6 +19,7 @@ import shutil
 import argparse
 import json
 import subprocess
+import time
 import lxml.etree
 import uuid
 from contextlib import contextmanager
@@ -143,6 +144,18 @@ def do_init_box(force=False):
 
 
 def run_vm_asv(cmd, upload=True):
+    lock = LockFile('lockfile')
+    if not lock.acquire(block=False):
+        print("ERROR: another process is currently running")
+        print("Wait until it is done, or remove 'lockfile'")
+        sys.exit(1)
+    try:
+        _run_vm_asv(cmd, upload)
+    finally:
+        lock.release()
+
+
+def _run_vm_asv(cmd, upload=True):
     if not os.path.isfile('hostname'):
         print("ERROR: Create a file 'hostname' with the desired hostname")
         sys.exit(1)
@@ -267,6 +280,61 @@ def redirect_stream(stream, to):
             sys.stdout = old_stream
         elif stream_unbuffer == 'stderr':
             sys.stderr = old_stream
+
+
+class LockFile(object):
+    # XXX: posix-only
+
+    def __init__(self, filename):
+        self.filename = filename
+        self.pid = os.getpid()
+        self.count = 0
+
+    def __enter__(self):
+        self.acquire()
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.release()
+
+    def acquire(self, block=True):
+        if self.count > 0:
+            self.count += 1
+            return True
+
+        while True:
+            try:
+                lock_pid = os.readlink(self.filename)
+                if not os.path.isdir('/proc/%s' % lock_pid):
+                    # dead lock; delete under lock to avoid races
+                    sublock = LockFile(self.filename + '.lock')
+                    sublock.acquire()
+                    try:
+                        os.unlink(self.filename)
+                    finally:
+                        sublock.release()
+            except OSError, exc:
+                pass
+
+            try:
+                os.symlink(repr(self.pid), self.filename)
+                break
+            except OSError, exc:
+                if exc.errno != 17: raise
+
+            if not block:
+                return False
+            time.sleep(1)
+
+        self.count += 1
+        return True
+
+    def release(self):
+        if self.count == 1:
+            if os.path.islink(self.filename):
+                os.unlink(self.filename)
+        elif self.count < 1:
+            raise RuntimeError('Invalid lock nesting')
+        self.count -= 1
 
 
 if __name__ == "__main__":
