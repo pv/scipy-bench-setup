@@ -5,11 +5,10 @@ run.py [command]
 Run Airspeed Velocity benchmark inside a virtual machine
 
 commands:
-
-   init               initial run
-   cron               run cron job (benchmark new commits)
-   populate           run for several commits throughout the history
-   <asv command>      any ASV command
+  init               initial run
+  cron               run cron job (benchmark new commits)
+  populate           run for several commits throughout the history
+  <asv command>      any ASV command
 
 """
 from __future__ import division, absolute_import, print_function
@@ -36,7 +35,7 @@ RESULTS_REPO_UPLOADURL = 'git@github.com:pv/scipy-bench.git'
 
 
 def main():
-    p = argparse.ArgumentParser()
+    p = argparse.ArgumentParser(usage=__doc__.strip())
     p.add_argument('command', nargs='+')
     args = p.parse_args()
 
@@ -221,7 +220,11 @@ def run(cmd, output=False, **kw):
                 run([line], shell=True, **kw)
         return
 
-    cmd_msg = " ".join(quote(x) for x in cmd)
+    if kw.get('shell'):
+        cmd_msg = " ".join(cmd)
+    else:
+        cmd_msg = " ".join(quote(x) for x in cmd)
+
     if 'cwd' in kw:
         print(kw['cwd'], "$", cmd_msg)
     else:
