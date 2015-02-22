@@ -89,9 +89,10 @@ def do_populate():
 
 
 def do_docs(commit):
-    with _vagrant_up():
-        cmd = ['sudo', '--', '/usr/local/bin/run-cmd', 'docs', commit]
-        run(['vagrant', 'ssh', '-c', " ".join(quote(x) for x in cmd)])
+    with main_lock():
+        with _vagrant_up():
+            cmd = ['sudo', '--', '/usr/local/bin/run-cmd', 'docs', commit]
+            run(['vagrant', 'ssh', '-c', " ".join(quote(x) for x in cmd)])
 
 
 def do_init_box(force=False):
@@ -168,13 +169,19 @@ def do_init_box(force=False):
 
 
 def run_vm_asv(cmd, upload=True):
+    with main_lock():
+        _run_vm_asv(cmd, upload)
+
+
+@contextmanager
+def main_lock():
     lock = LockFile('lockfile')
     if not lock.acquire(block=False):
         print("ERROR: another process is currently running")
         print("Wait until it is done, or remove 'lockfile'")
         sys.exit(1)
     try:
-        _run_vm_asv(cmd, upload)
+        yield
     finally:
         lock.release()
 

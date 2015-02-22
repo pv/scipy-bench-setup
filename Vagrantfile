@@ -18,7 +18,7 @@ hostname "#{hostname}"
 mv run-cmd /usr/local/bin/run-cmd
 chown root.root /usr/local/bin/run-cmd
 chmod a+rx /usr/local/bin/run-cmd
-apt-get install -y --no-install-recommends build-essential python2.7-dev python-numpy libopenblas-dev liblapack-dev gfortran git python-six python-pip ccache python-virtualenv rsync subversion python-sphinx texlive-latex-recommended libjs-mathjax texlive-fonts-recommended texlive-latex-extra cython
+apt-get install -y --no-install-recommends build-essential python2.7-dev python-numpy libopenblas-dev liblapack-dev gfortran git python-six python-pip ccache python-virtualenv rsync subversion python-sphinx texlive-latex-recommended libjs-mathjax texlive-fonts-recommended texlive-latex-extra cython python-matplotlib zip
 apt-get --purge remove -y nfs-common rpcbind mlocate apt-xapian-index aptitude unattended-upgrades
 apt-get clean
 echo 'APT::Periodic::Update-Package-Lists "0";' > /etc/apt/apt.conf.d/10periodic

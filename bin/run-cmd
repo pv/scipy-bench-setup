@@ -33,7 +33,7 @@ docs() {
 	sudo -H -u runner git checkout "$1"
     fi
     sudo -H -u runner git clean -fdx . ../scipy
-    sudo -H -u runner ATLAS=None OPENBLAS_NUM_THREADS=1 PATH=$PATH:/srv/runner/.local/bin make dist
+    sudo -H -u runner ATLAS=None OPENBLAS_NUM_THREADS=1 PATH=/usr/lib/ccache:$PATH:/srv/runner/.local/bin make dist
     rsync -a --delete build/dist/ /srv/doc/
     popd
 }
