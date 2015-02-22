@@ -1,15 +1,7 @@
 #!/usr/bin/env python
 """
-run.py [command]
-
-Run Airspeed Velocity benchmark inside a virtual machine
-
-commands:
-  init               initial run
-  cron               run cron job (benchmark new commits)
-  populate           run for several commits throughout the history
-  <asv command>      any ASV command
-
+Run Airspeed Velocity benchmark or Sphinx document build inside a
+virtual machine
 """
 from __future__ import division, absolute_import, print_function
 import os
@@ -36,24 +28,50 @@ RESULTS_REPO_UPLOADURL = 'git@github.com:pv/scipy-bench.git'
 
 
 def main():
-    p = argparse.ArgumentParser(usage=__doc__.strip())
-    p.add_argument('command', nargs='+')
+    p = argparse.ArgumentParser(description=__doc__.strip())
+    sp = p.add_subparsers(dest="command", help="command to run")
+    p_run = sp.add_parser('run',
+        description=("Run benchmarks via ASV. This clones the scipy-bench repository "
+                     "under 'scipy-bench/' and commits the results obtained into it. "
+                     "HTML output is also generated under 'html/'. If 'deploy-key' is "
+                     "present, the results are also pushed via Git, to master and "
+                     "gh-pages."),
+        help="run benchmarks and upload results")
+    p_run.add_argument('args', metavar="ARGS", nargs=argparse.REMAINDER,
+        help="arguments to pass on to asv run")
+    p_cron = sp.add_parser('cron',
+        help="run cron job (benchmark new commits, output log file)",
+        description="Do './run.py run -k NEW > benchmark.log 2>&1'"
+        )
+    p_populate = sp.add_parser('populate',
+        help="run for several commits throughout the history",
+        description="Run for several commits throughout Scipy history")
+    p_init_box = sp.add_parser('init-box',
+        help="initialize Vagrant box",
+        description="Create and add Vagrant box 'scipy-bench-trusty64', "
+        "which is a 5GB Virtualbox VM based on Ubuntu trusty64 Vagrant image.")
+    p_doc = sp.add_parser('docs',
+        help="build docs with sphinx",
+        description="Build Scipy docs using Sphinx. Output goes to 'doc/'")
+    p_doc.add_argument('tag', metavar='TAG', default='master', nargs='?',
+        help="tag/commit at which to build the docs")
     args = p.parse_args()
 
     os.chdir(os.path.dirname(__file__))
 
-    if args.command[0] == 'init':
-        do_initial_run()
-    elif args.command[0] == 'cron':
+    if args.command == 'init-box':
+        do_init_box()
+    elif args.command == 'cron':
         do_cron()
-    elif args.command[0] == 'populate':
+    elif args.command == 'populate':
         do_populate()
+    elif args.command == 'run':
+        run_vm_asv(args.args)
+    elif args.command == 'docs':
+        do_docs(args.tag)
     else:
-        run_vm_asv(args.command)
-
-
-def do_initial_run():
-    run_vm_asv(['run', '-k', 'master^!'])
+        # should never happen
+        raise ValueError()
 
 
 def do_cron():
@@ -68,6 +86,12 @@ def do_populate():
     run_vm_asv(['run', '-k', '--steps', '11', 'v0.7.0^..master'])
     run_vm_asv(['run', '-k', '--steps', '21', 'v0.9.0^..master'])
     run_vm_asv(['run', '-k', '--steps', '51', 'v0.5.0^..master'])
+
+
+def do_docs(commit):
+    with _vagrant_up():
+        cmd = ['sudo', '--', '/usr/local/bin/run-cmd', 'docs', commit]
+        run(['vagrant', 'ssh', '-c', " ".join(quote(x) for x in cmd)])
 
 
 def do_init_box(force=False):
@@ -155,6 +179,32 @@ def run_vm_asv(cmd, upload=True):
         lock.release()
 
 
+@contextmanager
+def _vagrant_up():
+    do_init_box()
+
+    if not os.path.isdir('scipy-bench'):
+        run(['git', 'clone', RESULTS_REPO_CLONEURL, 'scipy-bench'])
+        run(['git', 'remote', 'add', 'upload', RESULTS_REPO_UPLOADURL],
+            cwd='scipy-bench')
+
+    if os.path.exists('html'):
+        shutil.rmtree('html')
+    os.makedirs('html')
+    if os.path.exists('doc'):
+        shutil.rmtree('doc')
+    os.makedirs('doc')
+
+    if not os.path.isdir('results'):
+        os.symlink('scipy-bench/results', 'results')
+
+    run(['vagrant', 'up'])
+    try:
+        yield
+    finally:
+        run(['vagrant', 'suspend'])
+
+
 def _run_vm_asv(cmd, upload=True):
     if not os.path.isfile('hostname'):
         print("ERROR: Create a file 'hostname' with the desired hostname")
@@ -165,38 +215,19 @@ def _run_vm_asv(cmd, upload=True):
         print("Upload will not be perfomed on this run!")
         upload = False
 
-    do_init_box()
-
-    print("-- Doing an ASV run")
-
     env = dict(os.environ)
     env.update({
         'WORKDIR': os.getcwd(),
         'GIT_SSH': os.getcwd() + '/git-ssh'
     })
 
-    if not os.path.isdir('scipy-bench'):
-        run(['git', 'clone', RESULTS_REPO_CLONEURL, 'scipy-bench'])
-        run(['git', 'remote', 'add', 'upload', RESULTS_REPO_UPLOADURL],
-            cwd='scipy-bench')
-
-    if os.path.exists('html'):
-        shutil.rmtree('html')
-    os.makedirs('html')
-
-    if not os.path.isdir('results'):
-        os.symlink('scipy-bench/results', 'results')
-
-    run(['git', '-C', 'scipy-bench', 'pull', 'origin', 'master'])
-
-    cmd = ['sudo', '--', '/usr/local/bin/run-benchmarks'] + cmd
-
-    run(['vagrant', 'up'])
-    try:
+    with _vagrant_up():
+        print("-- Doing an ASV run")
+        run(['git', '-C', 'scipy-bench', 'pull', 'origin', 'master'])
+        cmd = ['sudo', '--', '/usr/local/bin/run-cmd', 'benchmarks'] + cmd
         run(['vagrant', 'ssh', '-c', " ".join(quote(x) for x in cmd)])
-    finally:
-        run(['vagrant', 'suspend'])
 
+    print("-- Adding results")
     run("""
     git pull origin master
     git checkout master
@@ -206,6 +237,7 @@ def _run_vm_asv(cmd, upload=True):
     """, cwd='scipy-bench')
 
     if upload:
+        print("-- Uploading results")
         run("git push upload master", cwd='scipy-bench', env=env)
         run("""
         rm -rf scipy-bench-html
