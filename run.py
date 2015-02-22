@@ -66,7 +66,9 @@ def main():
     elif args.command == 'populate':
         do_populate()
     elif args.command == 'run':
-        run_vm_asv(args.args)
+        if args.args and args.args[0] == '--':
+            args.args = args.args[1:]
+        run_vm_asv(['run'] + args.args)
     elif args.command == 'docs':
         do_docs(args.tag)
     else:
