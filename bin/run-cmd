@@ -9,8 +9,11 @@ update() {
 	sudo -H -u runner git -C scipy submodule init
         ln -s /srv/results scipy/benchmarks/results
     fi
+    sudo -H -u runner git -C scipy fetch origin
     sudo -H -u runner git -C scipy checkout master
-    sudo -H -u runner git -C scipy pull --ff-only
+    sudo -H -u runner git -C scipy branch -f maintenance/0.14.x origin/maintenance/0.14.x
+    sudo -H -u runner git -C scipy branch -f maintenance/0.15.x origin/maintenance/0.15.x
+    sudo -H -u runner git -C scipy reset --hard origin/master
     sudo -H -u runner git -C scipy submodule update
     popd
 }
