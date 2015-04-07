@@ -25,6 +25,7 @@ echo 'APT::Periodic::Update-Package-Lists "0";' > /etc/apt/apt.conf.d/10periodic
 adduser --system --uid 510 --home /srv/runner runner
 sudo -H -u runner git clone --depth 2 https://github.com/spacetelescope/asv.git /srv/runner/asv
 sudo -H -u runner pip install --no-index --user /srv/runner/asv
+sudo -H -u runner pip install --user --upgrade Cython
 __EOF__
 
   config.vm.box = "scipy-bench-trusty64"
