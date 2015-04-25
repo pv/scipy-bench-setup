@@ -15,6 +15,7 @@ update() {
     sudo -H -u runner git -C scipy branch -f maintenance/0.15.x origin/maintenance/0.15.x
     sudo -H -u runner git -C scipy reset --hard origin/master
     sudo -H -u runner git -C scipy submodule update
+    sudo -H -u runner git -C scipy clean -fdx build scipy doc
     popd
 }
 
