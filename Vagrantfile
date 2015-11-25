@@ -29,7 +29,7 @@ sudo -H -u runner pip install --user --upgrade Cython
 sudo -H -u runner ccache -M 700M
 __EOF__
 
-  config.vm.box = "scipy-bench-trusty64"
+  config.vm.box = "scipy-bench-trusty"
   config.vm.provision "file", source: "bin/run-cmd", destination: "run-cmd"
   config.vm.provision :shell, inline: bootstrap
   config.vm.synced_folder ".", "/vagrant", disabled: true

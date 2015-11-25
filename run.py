@@ -20,9 +20,16 @@ try:  # py3
 except ImportError:  # py2
     from pipes import quote
 
-IMG_BASEFN = "trusty-server-cloudimg-amd64-vagrant-disk1.box"
-IMG_URL = "https://cloud-images.ubuntu.com/vagrant/trusty/current/"+IMG_BASEFN
-BOX_NAME = 'scipy-bench-trusty64'
+AMD64 = False
+
+if AMD64:
+    IMG_BASEFN = "trusty-server-cloudimg-amd64-vagrant-disk1.box"
+    IMG_URL = "https://cloud-images.ubuntu.com/vagrant/trusty/current/"+IMG_BASEFN
+else:
+    IMG_BASEFN = "trusty-server-cloudimg-i386-vagrant-disk1.box"
+    IMG_URL = "https://cloud-images.ubuntu.com/vagrant/trusty/current/"+IMG_BASEFN
+
+BOX_NAME = 'scipy-bench-trusty'
 RESULTS_REPO_CLONEURL = 'https://github.com/pv/scipy-bench.git'
 RESULTS_REPO_UPLOADURL = 'git@github.com:pv/scipy-bench.git'
 
@@ -48,8 +55,8 @@ def main():
         description="Run for several commits throughout Scipy history")
     p_init_box = sp.add_parser('init-box',
         help="initialize Vagrant box",
-        description="Create and add Vagrant box 'scipy-bench-trusty64', "
-        "which is a 5GB Virtualbox VM based on Ubuntu trusty64 Vagrant image.")
+        description="Create and add Vagrant box '{}', "
+        "which is a 5GB Virtualbox VM based on Ubuntu trusty Vagrant image.".format(BOX_NAME))
     p_doc = sp.add_parser('docs',
         help="build docs with sphinx",
         description="Build Scipy docs using Sphinx. Output goes to 'doc/'")
@@ -144,9 +151,17 @@ def do_init_box(force=False):
         'vbox': 'http://www.virtualbox.org/ovf/machine',
         'vssd': 'http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_VirtualSystemSettingData'
     }
-    our_id = "ubuntu-cloudimg-trusty-vagrant-amd64-scipy-bench"
+    if AMD64:
+        our_id = "ubuntu-cloudimg-trusty-vagrant-amd64-scipy-bench"
+    else:
+        our_id = "ubuntu-cloudimg-trusty-vagrant-i386-scipy-bench"
     our_uuid = uuid.uuid4()
     tree = lxml.etree.parse('boxmod/box.ovf')
+    if not AMD64:
+        cpu, = tree.xpath('//ovf:CPU', namespaces=namespaces)
+        for el in list(cpu.xpath('ovf:LongMode', namespaces=namespaces)):
+            cpu.remove(el)
+        lxml.etree.SubElement(cpu, '{%s}LongMode' % namespaces['ovf'], attrib=dict(enabled="true"))
     disk, = tree.xpath('//ovf:Disk', namespaces=namespaces)
     disk.attrib['{http://schemas.dmtf.org/ovf/envelope/1}capacity'] = str(virtual_size)
     disk.attrib['{http://www.virtualbox.org/ovf/machine}uuid'] = disk_uuid
@@ -166,8 +181,8 @@ def do_init_box(force=False):
     shutil.rmtree('boxmod')
 
     # Add to vagrant
-    run("vagrant box add scipy-bench-trusty64 scipy-bench-trusty64.box")
-    os.remove("scipy-bench-trusty64.box")
+    run("vagrant box add {} {}.box".format(BOX_NAME, BOX_NAME))
+    os.remove("{}.box".format(BOX_NAME))
 
 
 def run_vm_asv(cmd, upload=True):
