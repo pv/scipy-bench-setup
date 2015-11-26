@@ -20,14 +20,6 @@ try:  # py3
 except ImportError:  # py2
     from pipes import quote
 
-AMD64 = False
-
-if AMD64:
-    IMG_BASEFN = "trusty-server-cloudimg-amd64-vagrant-disk1.box"
-    IMG_URL = "https://cloud-images.ubuntu.com/vagrant/trusty/current/"+IMG_BASEFN
-else:
-    IMG_BASEFN = "trusty-server-cloudimg-i386-vagrant-disk1.box"
-    IMG_URL = "https://cloud-images.ubuntu.com/vagrant/trusty/current/"+IMG_BASEFN
 
 BOX_NAME = 'scipy-bench-trusty'
 RESULTS_REPO_CLONEURL = 'https://github.com/pv/scipy-bench.git'
@@ -115,14 +107,22 @@ def do_init_box(force=False):
             print("Box already exists.")
             return
 
-    if not os.path.isfile(IMG_BASEFN):
-        run(['curl', '-o', IMG_BASEFN, IMG_URL])
+    box_fn = "{}.box".format(BOX_NAME)
+    if os.path.exists(box_fn):
+        print("Using a previously built box: {}".format(box_fn))
+        run("vagrant box add {} {}.box".format(BOX_NAME, BOX_NAME))
+        return
+
+    img_url, img_basefn, is_64bit = get_vm_image()
+
+    if not os.path.isfile(img_basefn):
+        run(['curl', '-o', img_basefn, img_url])
 
     # Resize the ubuntu image --- it contains a 4G partition that is resized
     # automatically on the first boot to match the size of the VM disk
     # For us, the default 40GB disk is way too big, so reduce the size
     run("rm -rf boxmod; mkdir boxmod")
-    run(['tar', 'xf', '../' + IMG_BASEFN], cwd='boxmod')
+    run(['tar', 'xf', '../' + img_basefn], cwd='boxmod')
     run("""
     qemu-img convert -O raw box-disk1.vmdk tmp.raw
     qemu-img resize tmp.raw 5G
@@ -151,17 +151,15 @@ def do_init_box(force=False):
         'vbox': 'http://www.virtualbox.org/ovf/machine',
         'vssd': 'http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_VirtualSystemSettingData'
     }
-    if AMD64:
-        our_id = "ubuntu-cloudimg-trusty-vagrant-amd64-scipy-bench"
-    else:
-        our_id = "ubuntu-cloudimg-trusty-vagrant-i386-scipy-bench"
+    our_id = "ubuntu-cloudimg-trusty-vagrant-scipy-bench"
     our_uuid = uuid.uuid4()
     tree = lxml.etree.parse('boxmod/box.ovf')
-    if not AMD64:
+    if not is_64bit:
+        # Ensure longmode is disabled
         cpu, = tree.xpath('//ovf:CPU', namespaces=namespaces)
         for el in list(cpu.xpath('ovf:LongMode', namespaces=namespaces)):
             cpu.remove(el)
-        lxml.etree.SubElement(cpu, '{%s}LongMode' % namespaces['ovf'], attrib=dict(enabled="true"))
+        lxml.etree.SubElement(cpu, '{%s}LongMode' % namespaces['ovf'], attrib=dict(enabled="false"))
     disk, = tree.xpath('//ovf:Disk', namespaces=namespaces)
     disk.attrib['{http://schemas.dmtf.org/ovf/envelope/1}capacity'] = str(virtual_size)
     disk.attrib['{http://www.virtualbox.org/ovf/machine}uuid'] = disk_uuid
@@ -182,7 +180,29 @@ def do_init_box(force=False):
 
     # Add to vagrant
     run("vagrant box add {} {}.box".format(BOX_NAME, BOX_NAME))
-    os.remove("{}.box".format(BOX_NAME))
+
+
+def is_vtx_available():
+    with open('/proc/cpuinfo') as f:
+        for line in f:
+            if line.startswith('flags'):
+                p = line.split()
+                if 'vmx' in p or 'svm' in p:
+                    return True
+    return False
+
+
+def get_vm_image():
+    if is_vtx_available():
+        # can use 64-bit image
+        basefn = "trusty-server-cloudimg-amd64-vagrant-disk1.box"
+        is_64bit = True
+    else:
+        # fall back to 32-bit
+        basefn = "trusty-server-cloudimg-i386-vagrant-disk1.box"
+        is_64bit = False
+    url = "https://cloud-images.ubuntu.com/vagrant/trusty/current/" + basefn
+    return url, basefn, is_64bit
 
 
 def run_vm_asv(cmd, upload=True):
