@@ -8,6 +8,8 @@ export HOME="$DST/var"
 
 export PYTHONPATH="$HOME/.local/lib/python2.7"
 
+export TMPDIR="$HOME"/tmp
+
 
 update() {
     pushd "$HOME"
@@ -70,7 +72,7 @@ function backtrace () {
 }
 trap 'backtrace' ERR
 
-mkdir -p "$HOME"
+mkdir -p "$HOME" "$HOME/tmp"
 
 # Run command:
 if test "$1" = "benchmarks"; then

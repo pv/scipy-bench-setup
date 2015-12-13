@@ -1,0 +1,40 @@
+# vim:syntax=apparmor
+# Last Modified: Tue Jun 09 14:34:12 2009
+# Author: Kees Cook <kees@canonical.com>
+#         Jamie Strandboge <jamie@canonical.com>
+
+#include <tunables/global>
+
+/home/benchmarker/scipy-bench-setup/bin/run-cmd-user {
+  #include <abstractions/nameservice>
+  #include <abstractions/python>
+
+  # silence logging
+  deny /home/ r,
+  deny @{HOME}/ r,
+
+  # allowed points
+  /home/benchmarker/scipy-bench-setup/var/ rw,
+  /home/benchmarker/scipy-bench-setup/var/** rwklmix,
+
+  /usr/bin/ r,
+  /usr/bin/* rmix,
+  /bin/* rmix,
+  /usr/lib/** rmix,
+  /lib/** rmix,
+
+  unix peer=@{profile_name},
+  signal peer=@{profile_name},
+  ptrace (read, readby, trace) peer=@{profile_name},
+
+  /proc/*/status r,
+  /proc/*/auxv r,
+  /proc/*/cmdline r,
+  /proc/*/environ r,
+  /proc/*/mem rw,
+  /proc/*/task/ r,
+  /proc/*/task/** r,
+  /proc/*/task/*/comm rw,
+  /proc/version r,
+  /proc/modules r,
+}
