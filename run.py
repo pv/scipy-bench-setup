@@ -21,9 +21,9 @@ except ImportError:  # py2
     from pipes import quote
 
 
-BOX_NAME = 'scipy-bench-trusty'
-RESULTS_REPO_CLONEURL = 'https://github.com/pv/scipy-bench.git'
-RESULTS_REPO_UPLOADURL = 'git@github.com:pv/scipy-bench.git'
+BOX_NAME = 'numpy-bench-trusty'
+RESULTS_REPO_CLONEURL = 'https://github.com/pv/numpy-bench.git'
+RESULTS_REPO_UPLOADURL = 'git@github.com:pv/numpy-bench.git'
 
 
 def main():
@@ -32,8 +32,8 @@ def main():
                    help="jail to use", choices=('vagrant', 'cmd'))
     sp = p.add_subparsers(dest="command", help="command to run")
     p_run = sp.add_parser('run',
-        description=("Run benchmarks via ASV. This clones the scipy-bench repository "
-                     "under 'scipy-bench/' and commits the results obtained into it. "
+        description=("Run benchmarks via ASV. This clones the numpy-bench repository "
+                     "under 'numpy-bench/' and commits the results obtained into it. "
                      "HTML output is also generated under 'html/'. If 'deploy-key' is "
                      "present, the results are also pushed via Git, to master and "
                      "gh-pages."),
@@ -46,14 +46,14 @@ def main():
         )
     p_populate = sp.add_parser('populate',
         help="run for several commits throughout the history",
-        description="Run for several commits throughout Scipy history")
+        description="Run for several commits throughout numpy history")
     p_init_box = sp.add_parser('setup',
         help="initialize Vagrant box",
         description="Create and add Vagrant box '{}', "
         "which is a 5GB Virtualbox VM based on Ubuntu trusty Vagrant image.".format(BOX_NAME))
     p_doc = sp.add_parser('docs',
         help="build docs with sphinx",
-        description="Build Scipy docs using Sphinx. Output goes to 'doc/'")
+        description="Build numpy docs using Sphinx. Output goes to 'doc/'")
     p_doc.add_argument('tag', metavar='TAG', default='master', nargs='?',
         help="tag/commit at which to build the docs")
     args = p.parse_args()
@@ -133,10 +133,10 @@ def main_lock():
 
 @contextmanager
 def with_jail_up(jail):
-    if not os.path.isdir('scipy-bench'):
-        run(['git', 'clone', RESULTS_REPO_CLONEURL, 'scipy-bench'])
+    if not os.path.isdir('numpy-bench'):
+        run(['git', 'clone', RESULTS_REPO_CLONEURL, 'numpy-bench'])
         run(['git', 'remote', 'add', 'upload', RESULTS_REPO_UPLOADURL],
-            cwd='scipy-bench')
+            cwd='numpy-bench')
 
     if os.path.exists('html'):
         shutil.rmtree('html')
@@ -146,7 +146,7 @@ def with_jail_up(jail):
     os.makedirs('doc')
 
     if not os.path.isdir('results'):
-        os.symlink('scipy-bench/results', 'results')
+        os.symlink('numpy-bench/results', 'results')
 
     jail.setup()
 
@@ -172,7 +172,7 @@ def _run_vm_asv(jail, cmd, upload=True):
 
     with with_jail_up(jail):
         print("-- Doing an ASV run")
-        run(['git', '-C', 'scipy-bench', 'pull', 'origin', 'master'])
+        run(['git', '-C', 'numpy-bench', 'pull', 'origin', 'master'])
         jail.run(['benchmarks'] + cmd)
 
     print("-- Adding results")
@@ -182,17 +182,17 @@ def _run_vm_asv(jail, cmd, upload=True):
     git add -u results
     git add results
     git commit -m "New results" -a || true
-    """, cwd='scipy-bench')
+    """, cwd='numpy-bench')
 
     if upload:
         print("-- Uploading results")
-        run("git push upload master", cwd='scipy-bench', env=env)
+        run("git push upload master", cwd='numpy-bench', env=env)
         run("""
-        rm -rf scipy-bench-html
-        git clone -b master scipy-bench scipy-bench-html
+        rm -rf numpy-bench-html
+        git clone -b master numpy-bench numpy-bench-html
         """)
-        run(['git', 'remote', 'rm', 'origin'], cwd='scipy-bench-html')
-        run(['git', 'remote', 'add', 'origin', RESULTS_REPO_UPLOADURL], cwd='scipy-bench-html')
+        run(['git', 'remote', 'rm', 'origin'], cwd='numpy-bench-html')
+        run(['git', 'remote', 'add', 'origin', RESULTS_REPO_UPLOADURL], cwd='numpy-bench-html')
         run("""
         git branch -D gh-pages || true
         git checkout --orphan gh-pages
@@ -200,8 +200,8 @@ def _run_vm_asv(jail, cmd, upload=True):
         git add -f .
         git commit -m "Generated from sources"
         git push -f origin gh-pages
-        """, cwd='scipy-bench-html', env=env)
-        run("rm -rf scipy-bench-html")
+        """, cwd='numpy-bench-html', env=env)
+        run("rm -rf numpy-bench-html")
 
 
 def run(cmd, output=False, **kw):
@@ -318,7 +318,7 @@ class VagrantJail(object):
             'vbox': 'http://www.virtualbox.org/ovf/machine',
             'vssd': 'http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_VirtualSystemSettingData'
         }
-        our_id = "ubuntu-cloudimg-trusty-vagrant-scipy-bench"
+        our_id = "ubuntu-cloudimg-trusty-vagrant-numpy-bench"
         our_uuid = uuid.uuid4()
         tree = lxml.etree.parse('boxmod/box.ovf')
         if not is_64bit:

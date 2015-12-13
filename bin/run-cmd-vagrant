@@ -2,28 +2,28 @@
 
 export LC_ALL=C
 
+export PATH="/usr/lib/ccache:/usr/local/lib/f90cache:$PATH"
+
 update() {
     pushd /srv/runner
-    if test ! -d scipy; then
-        sudo -H -u runner git clone https://github.com/scipy/scipy.git scipy
-	sudo -H -u runner git -C scipy submodule init
-        ln -s /srv/results scipy/benchmarks/results
+    if test ! -d numpy; then
+        sudo -H -u runner git clone https://github.com/numpy/numpy.git numpy
+	sudo -H -u runner git -C numpy submodule init
+        ln -s /srv/results numpy/benchmarks/results
     fi
-    sudo -H -u runner git -C scipy fetch origin
-    sudo -H -u runner git -C scipy checkout master
-    sudo -H -u runner git -C scipy branch -f maintenance/0.14.x origin/maintenance/0.14.x
-    sudo -H -u runner git -C scipy branch -f maintenance/0.15.x origin/maintenance/0.15.x
-    sudo -H -u runner git -C scipy reset --hard origin/master
-    sudo -H -u runner git -C scipy submodule update
-    sudo -H -u runner git -C scipy clean -fdx build scipy doc
+    sudo -H -u runner git -C numpy fetch origin
+    sudo -H -u runner git -C numpy checkout master
+    sudo -H -u runner git -C numpy reset --hard origin/master
+    sudo -H -u runner git -C numpy submodule update
+    sudo -H -u runner git -C numpy clean -fdx build numpy doc
     popd
 }
 
 benchmarks() {
     update
-    pushd /srv/runner/scipy/benchmarks
-    while true; do echo; done | sudo -H -u runner ATLAS=None OPENBLAS_NUM_THREADS=1 PATH=$PATH:/srv/runner/.local/bin python run.py --current-repo "$@"
-    sudo -H -u runner PATH=$PATH:/srv/runner/.local/bin python run.py --current-repo publish
+    pushd /srv/runner/numpy/benchmarks
+    while true; do echo; done | sudo -H -u runner ATLAS=None OPENBLAS_NUM_THREADS=1 PATH=$PATH:/srv/runner/.local/bin "$HOME"/.local/bin/asv "$@"
+    sudo -H -u runner PATH=$PATH:/srv/runner/.local/bin "$HOME"/.local/bin/asv publish
     rm -rf /srv/html/*
     rsync -a html/ /srv/html/
     popd
@@ -31,12 +31,12 @@ benchmarks() {
 
 docs() {
     update
-    pushd /srv/runner/scipy/doc
+    pushd /srv/runner/numpy/doc
     rm -rf ../build ../dist build dist
     if test "$1" != ""; then
 	sudo -H -u runner git checkout "$1"
     fi
-    sudo -H -u runner git clean -fdx . ../scipy
+    sudo -H -u runner git clean -fdx . ../numpy
     sudo -H -u runner ATLAS=None OPENBLAS_NUM_THREADS=1 PATH=/usr/lib/ccache:$PATH:/srv/runner/.local/bin make dist
     rsync -a --delete build/dist/ /srv/doc/
     popd

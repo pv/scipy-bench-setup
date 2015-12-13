@@ -10,13 +10,15 @@ export PYTHONPATH="$HOME/.local/lib/python2.7"
 
 export TMPDIR="$HOME"/tmp
 
+export PATH="/usr/lib/ccache:/usr/local/lib/f90cache:$PATH"
+
 
 update() {
     pushd "$HOME"
-    if test ! -d scipy; then
-        git clone https://github.com/scipy/scipy.git scipy
-	git -C scipy submodule init
-        ln -s "$DST"/results scipy/benchmarks/results
+    if test ! -d numpy; then
+        git clone https://github.com/numpy/numpy.git numpy
+	git -C numpy submodule init
+        ln -s "$DST"/results numpy/benchmarks/results
     fi
     if test ! -f "$DST/hostname"; then
         echo "Create file called 'hostname' containing the desired host name"
@@ -29,15 +31,13 @@ update() {
     	pip install --user "$HOME/asv"
     	pip install --upgrade --user Cython
     fi
-    git -C scipy fetch origin
-    git -C scipy checkout master
-    git -C scipy branch -f maintenance/0.14.x origin/maintenance/0.14.x
-    git -C scipy branch -f maintenance/0.15.x origin/maintenance/0.15.x
-    git -C scipy reset --hard origin/master
-    git -C scipy submodule update
-    git -C scipy clean -fdx build scipy doc
+    git -C numpy fetch origin
+    git -C numpy checkout master
+    git -C numpy reset --hard origin/master
+    git -C numpy submodule update
+    git -C numpy clean -fdx build numpy doc
     if test ! -f "$HOME/.asv-machine.json"; then
-        pushd scipy/benchmarks
+        pushd numpy/benchmarks
         while true; do echo; done | "$HOME"/.local/bin/asv machine
         popd
         M=`cat "$DST"/hostname`
@@ -48,9 +48,9 @@ update() {
 
 benchmarks() {
     update
-    pushd "$HOME"/scipy/benchmarks
-    while true; do echo; done | ATLAS=None OPENBLAS_NUM_THREADS=1 PATH="$HOME"/.local/bin:$PATH python run.py --current-repo "$@"
-    PATH="$HOME"/.local/bin:$PATH python run.py --current-repo publish
+    pushd "$HOME"/numpy/benchmarks
+    while true; do echo; done | ATLAS=None OPENBLAS_NUM_THREADS=1 PATH="$HOME"/.local/bin:$PATH "$HOME"/.local/bin/asv "$@"
+    PATH="$HOME"/.local/bin:$PATH "$HOME"/.local/bin/asv publish
     rm -rf "$DST"/html/*
     rsync -a html/ "$DST"/html/
     popd
@@ -58,12 +58,12 @@ benchmarks() {
 
 docs() {
     update
-    pushd "$HOME"/scipy/doc
+    pushd "$HOME"/numpy/doc
     rm -rf ../build ../dist build dist
     if test "$1" != ""; then
 	git checkout "$1"
     fi
-    git clean -fdx . ../scipy
+    git clean -fdx . ../numpy
     ATLAS=None OPENBLAS_NUM_THREADS=1 PATH=/usr/lib/ccache:"$HOME"/.local/bin:$PATH make dist
     rsync -a --delete build/dist/ "$DST"/doc/
     popd
