@@ -30,7 +30,7 @@ sudo -H -u runner ccache -M 700M
 __EOF__
 
   config.vm.box = "scipy-bench-trusty"
-  config.vm.provision "file", source: "bin/run-cmd", destination: "run-cmd"
+  config.vm.provision "file", source: "bin/run-cmd-vagrant", destination: "run-cmd"
   config.vm.provision :shell, inline: bootstrap
   config.vm.synced_folder ".", "/vagrant", disabled: true
   config.vm.synced_folder "results", "/srv/results", owner: 510

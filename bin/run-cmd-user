@@ -1,0 +1,85 @@
+#!/bin/bash
+
+export LC_ALL=C
+
+export DST=$(realpath "$(dirname "$0")/..")
+
+export HOME="$DST/var"
+
+export PYTHONPATH="$HOME/.local/lib/python2.7"
+
+
+update() {
+    pushd "$HOME"
+    if test ! -d scipy; then
+        git clone https://github.com/scipy/scipy.git scipy
+	git -C scipy submodule init
+        ln -s "$DST"/results scipy/benchmarks/results
+    fi
+    if test ! -f "$HOME"/.local/bin/asv; then
+	ccache -M 700M
+    	git clone --depth 2 https://github.com/spacetelescope/asv.git "$HOME"/asv
+    	pip install --user "$HOME/asv"
+    	pip install --upgrade --user Cython
+    fi
+    git -C scipy fetch origin
+    git -C scipy checkout master
+    git -C scipy branch -f maintenance/0.14.x origin/maintenance/0.14.x
+    git -C scipy branch -f maintenance/0.15.x origin/maintenance/0.15.x
+    git -C scipy reset --hard origin/master
+    git -C scipy submodule update
+    git -C scipy clean -fdx build scipy doc
+    popd
+}
+
+benchmarks() {
+    update
+    pushd "$HOME"/scipy/benchmarks
+    while true; do echo; done | ATLAS=None OPENBLAS_NUM_THREADS=1 PATH="$HOME"/.local/bin:$PATH python run.py --current-repo "$@"
+    PATH="$HOME"/.local/bin:$PATH python run.py --current-repo publish
+    rm -rf "$DST"/html/*
+    rsync -a html/ "$DST"/html/
+    popd
+}
+
+docs() {
+    update
+    pushd "$HOME"/scipy/doc
+    rm -rf ../build ../dist build dist
+    if test "$1" != ""; then
+	git checkout "$1"
+    fi
+    git clean -fdx . ../scipy
+    ATLAS=None OPENBLAS_NUM_THREADS=1 PATH=/usr/lib/ccache:"$HOME"/.local/bin:$PATH make dist
+    rsync -a --delete build/dist/ "$DST"/doc/
+    popd
+}
+
+# Enable strict error handling and reporting
+set -e -u
+set -E -o errtrace
+function backtrace () {
+    local deptn=${#FUNCNAME[@]}
+    for ((i=1; i<$deptn; i++)); do
+        local func="${FUNCNAME[$i]}"
+        local line="${BASH_LINENO[$((i-1))]}"
+        local src="${BASH_SOURCE[$((i-1))]}"
+        printf '%*s' $i '' # indent
+        echo "at: $func(), $src, line $line"
+    done
+}
+trap 'backtrace' ERR
+
+mkdir -p "$HOME"
+
+# Run command:
+if test "$1" = "benchmarks"; then
+    shift
+    benchmarks "$@"
+elif test "$1" = "docs"; then
+    shift
+    docs "$@"
+else
+    echo "error: invalid command: $1"
+    exit 1
+fi

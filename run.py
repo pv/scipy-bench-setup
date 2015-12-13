@@ -28,6 +28,8 @@ RESULTS_REPO_UPLOADURL = 'git@github.com:pv/scipy-bench.git'
 
 def main():
     p = argparse.ArgumentParser(description=__doc__.strip())
+    p.add_argument('-j', '--jail', action="store", dest="jail", default='vagrant',
+                   help="jail to use", choices=('vagrant', 'cmd'))
     sp = p.add_subparsers(dest="command", help="command to run")
     p_run = sp.add_parser('run',
         description=("Run benchmarks via ASV. This clones the scipy-bench repository "
@@ -45,7 +47,7 @@ def main():
     p_populate = sp.add_parser('populate',
         help="run for several commits throughout the history",
         description="Run for several commits throughout Scipy history")
-    p_init_box = sp.add_parser('init-box',
+    p_init_box = sp.add_parser('setup',
         help="initialize Vagrant box",
         description="Create and add Vagrant box '{}', "
         "which is a 5GB Virtualbox VM based on Ubuntu trusty Vagrant image.".format(BOX_NAME))
@@ -58,128 +60,48 @@ def main():
 
     os.chdir(os.path.dirname(__file__))
 
-    if args.command == 'init-box':
-        do_init_box()
-    elif args.command == 'cron':
-        do_cron()
-    elif args.command == 'populate':
-        do_populate()
-    elif args.command == 'run':
-        if args.args and args.args[0] == '--':
-            args.args = args.args[1:]
-        run_vm_asv(['run'] + args.args)
-    elif args.command == 'docs':
-        do_docs(args.tag)
-    else:
-        # should never happen
-        raise ValueError()
+    jails = {
+        'vargant': VagrantJail,
+        'cmd': NoJail,
+    }
+
+    with main_lock():
+        jail = jails[args.jail]()
+
+        if args.command == 'setup':
+            jail.setup()
+        elif args.command == 'cron':
+            do_cron(jail)
+        elif args.command == 'populate':
+            do_populate(jail)
+        elif args.command == 'run':
+            if args.args and args.args[0] == '--':
+                args.args = args.args[1:]
+            run_vm_asv(jail, ['run'] + args.args)
+        elif args.command == 'docs':
+            do_docs(jail, args.tag)
+        else:
+            # should never happen
+            raise ValueError()
 
 
-def do_cron():
+def do_cron(jail):
     with open('benchmark.log', 'wb') as f:
         with redirect_stream(sys.stdout, f):
             with redirect_stream(sys.stderr, sys.stdout):
-                run_vm_asv(['run', '-k', 'NEW'])
+                run_vm_asv(jail, ['run', '-k', 'NEW'])
 
 
-def do_populate():
-    run_vm_asv(['run', '-k', '--steps', '11', 'v0.5.0^..master'])
-    run_vm_asv(['run', '-k', '--steps', '11', 'v0.7.0^..master'])
-    run_vm_asv(['run', '-k', '--steps', '21', 'v0.9.0^..master'])
-    run_vm_asv(['run', '-k', '--steps', '51', 'v0.5.0^..master'])
+def do_populate(jail):
+    run_vm_asv(jail, ['run', '-k', '--steps', '11', 'v0.5.0^..master'])
+    run_vm_asv(jail, ['run', '-k', '--steps', '11', 'v0.7.0^..master'])
+    run_vm_asv(jail, ['run', '-k', '--steps', '21', 'v0.9.0^..master'])
+    run_vm_asv(jail, ['run', '-k', '--steps', '51', 'v0.5.0^..master'])
 
 
-def do_docs(commit):
-    with main_lock():
-        with _vagrant_up():
-            cmd = ['sudo', '--', '/usr/local/bin/run-cmd', 'docs', commit]
-            run(['vagrant', 'ssh', '-c', " ".join(quote(x) for x in cmd)])
-
-
-def do_init_box(force=False):
-    print("-- Initializing Vagrant box")
-
-    out = run(['vagrant', 'box', 'list'], output=True)
-    if BOX_NAME in out:
-        if force:
-            run(['vagrant', 'box', 'remove', BOX_NAME])
-        else:
-            print("Box already exists.")
-            return
-
-    box_fn = "{}.box".format(BOX_NAME)
-    if os.path.exists(box_fn):
-        print("Using a previously built box: {}".format(box_fn))
-        run("vagrant box add {} {}.box".format(BOX_NAME, BOX_NAME))
-        return
-
-    img_url, img_basefn, is_64bit = get_vm_image()
-
-    if not os.path.isfile(img_basefn):
-        run(['curl', '-o', img_basefn, img_url])
-
-    # Resize the ubuntu image --- it contains a 4G partition that is resized
-    # automatically on the first boot to match the size of the VM disk
-    # For us, the default 40GB disk is way too big, so reduce the size
-    run("rm -rf boxmod; mkdir boxmod")
-    run(['tar', 'xf', '../' + img_basefn], cwd='boxmod')
-    run("""
-    qemu-img convert -O raw box-disk1.vmdk tmp.raw
-    qemu-img resize tmp.raw 5G
-    rm -f box-disk1.vmdk
-    qemu-img convert -O vdi tmp.raw tmp.vdi
-    rm -f tmp.raw
-    VBoxManage clonehd tmp.vdi box-disk1.vmdk --format VMDK --variant Stream
-    rm -f tmp.vdi
-    """, cwd='boxmod')
-
-    # Get disk image info
-    info = json.loads(run(['qemu-img', 'info', '--output=json', 'box-disk1.vmdk'], output=True, cwd='boxmod'))
-    virtual_size = info['virtual-size']
-    vboxinfo = run(['vboxmanage', 'showhdinfo', 'box-disk1.vmdk'], output=True, cwd='boxmod')
-    for line in vboxinfo.splitlines():
-        m = re.match(r'^UUID:\s+([a-z0-9-]+)\s*$', line)
-        if m:
-            disk_uuid = m.group(1)
-            break
-    else:
-        raise ValueError("vboxmanag showhdinfo did not return UUID?")
-
-    # Substitute variables to ovf
-    namespaces = {
-        'ovf': 'http://schemas.dmtf.org/ovf/envelope/1',
-        'vbox': 'http://www.virtualbox.org/ovf/machine',
-        'vssd': 'http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_VirtualSystemSettingData'
-    }
-    our_id = "ubuntu-cloudimg-trusty-vagrant-scipy-bench"
-    our_uuid = uuid.uuid4()
-    tree = lxml.etree.parse('boxmod/box.ovf')
-    if not is_64bit:
-        # Ensure longmode is disabled
-        cpu, = tree.xpath('//ovf:CPU', namespaces=namespaces)
-        for el in list(cpu.xpath('ovf:LongMode', namespaces=namespaces)):
-            cpu.remove(el)
-        lxml.etree.SubElement(cpu, '{%s}LongMode' % namespaces['ovf'], attrib=dict(enabled="false"))
-    disk, = tree.xpath('//ovf:Disk', namespaces=namespaces)
-    disk.attrib['{http://schemas.dmtf.org/ovf/envelope/1}capacity'] = str(virtual_size)
-    disk.attrib['{http://www.virtualbox.org/ovf/machine}uuid'] = disk_uuid
-    image, = tree.xpath('//ovf:Image', namespaces=namespaces)
-    image.attrib['uuid'] = '{' + disk_uuid + '}'
-    vsystem, = tree.xpath('//ovf:VirtualSystem', namespaces=namespaces)
-    vsystem.attrib['{http://schemas.dmtf.org/ovf/envelope/1}id'] = our_id
-    vsysid, = tree.xpath('//vssd:VirtualSystemIdentifier', namespaces=namespaces)
-    vsysid.text = our_id
-    machine, = tree.xpath('//vbox:Machine', namespaces=namespaces)
-    machine.attrib['name'] = our_id
-    machine.attrib['uuid'] = '{%s}' % (our_uuid,)
-    tree.write('boxmod/box.ovf')
-
-    # Generate output box
-    run(['tar', 'cf', '../%s.box' % (BOX_NAME,), '.'], cwd="boxmod")
-    shutil.rmtree('boxmod')
-
-    # Add to vagrant
-    run("vagrant box add {} {}.box".format(BOX_NAME, BOX_NAME))
+def do_docs(jail, commit):
+    with with_jail_up(jail):
+        jail.run(['docs', commit])
 
 
 def is_vtx_available():
@@ -192,22 +114,8 @@ def is_vtx_available():
     return False
 
 
-def get_vm_image():
-    if is_vtx_available():
-        # can use 64-bit image
-        basefn = "trusty-server-cloudimg-amd64-vagrant-disk1.box"
-        is_64bit = True
-    else:
-        # fall back to 32-bit
-        basefn = "trusty-server-cloudimg-i386-vagrant-disk1.box"
-        is_64bit = False
-    url = "https://cloud-images.ubuntu.com/vagrant/trusty/current/" + basefn
-    return url, basefn, is_64bit
-
-
-def run_vm_asv(cmd, upload=True):
-    with main_lock():
-        _run_vm_asv(cmd, upload)
+def run_vm_asv(jail, cmd, upload=True):
+    _run_vm_asv(jail, cmd, upload)
 
 
 @contextmanager
@@ -224,9 +132,7 @@ def main_lock():
 
 
 @contextmanager
-def _vagrant_up():
-    do_init_box()
-
+def with_jail_up(jail):
     if not os.path.isdir('scipy-bench'):
         run(['git', 'clone', RESULTS_REPO_CLONEURL, 'scipy-bench'])
         run(['git', 'remote', 'add', 'upload', RESULTS_REPO_UPLOADURL],
@@ -242,14 +148,13 @@ def _vagrant_up():
     if not os.path.isdir('results'):
         os.symlink('scipy-bench/results', 'results')
 
-    run(['vagrant', 'up'])
-    try:
+    jail.setup()
+
+    with jail.activate():
         yield
-    finally:
-        run(['vagrant', 'suspend'])
 
 
-def _run_vm_asv(cmd, upload=True):
+def _run_vm_asv(jail, cmd, upload=True):
     if not os.path.isfile('hostname'):
         print("ERROR: Create a file 'hostname' with the desired hostname")
         sys.exit(1)
@@ -265,11 +170,10 @@ def _run_vm_asv(cmd, upload=True):
         'GIT_SSH': os.getcwd() + '/git-ssh'
     })
 
-    with _vagrant_up():
+    with with_jail_up(jail):
         print("-- Doing an ASV run")
         run(['git', '-C', 'scipy-bench', 'pull', 'origin', 'master'])
-        cmd = ['sudo', '--', '/usr/local/bin/run-cmd', 'benchmarks'] + cmd
-        run(['vagrant', 'ssh', '-c', " ".join(quote(x) for x in cmd)])
+        jail.run(['benchmarks'] + cmd)
 
     print("-- Adding results")
     run("""
@@ -356,6 +260,131 @@ def redirect_stream(stream, to):
             sys.stdout = old_stream
         elif stream_unbuffer == 'stderr':
             sys.stderr = old_stream
+
+
+class VagrantJail(object):
+    def setup(self, force=False):
+        print("-- Initializing Vagrant box")
+
+        out = run(['vagrant', 'box', 'list'], output=True)
+        if BOX_NAME in out:
+            if force:
+                run(['vagrant', 'box', 'remove', BOX_NAME])
+            else:
+                print("Box already exists.")
+                return
+
+        box_fn = "{}.box".format(BOX_NAME)
+        if os.path.exists(box_fn):
+            print("Using a previously built box: {}".format(box_fn))
+            run("vagrant box add {} {}.box".format(BOX_NAME, BOX_NAME))
+            return
+
+        img_url, img_basefn, is_64bit = self.get_vm_image()
+
+        if not os.path.isfile(img_basefn):
+            run(['curl', '-o', img_basefn, img_url])
+
+        # Resize the ubuntu image --- it contains a 4G partition that is resized
+        # automatically on the first boot to match the size of the VM disk
+        # For us, the default 40GB disk is way too big, so reduce the size
+        run("rm -rf boxmod; mkdir boxmod")
+        run(['tar', 'xf', '../' + img_basefn], cwd='boxmod')
+        run("""
+        qemu-img convert -O raw box-disk1.vmdk tmp.raw
+        qemu-img resize tmp.raw 5G
+        rm -f box-disk1.vmdk
+        qemu-img convert -O vdi tmp.raw tmp.vdi
+        rm -f tmp.raw
+        VBoxManage clonehd tmp.vdi box-disk1.vmdk --format VMDK --variant Stream
+        rm -f tmp.vdi
+        """, cwd='boxmod')
+
+        # Get disk image info
+        info = json.loads(run(['qemu-img', 'info', '--output=json', 'box-disk1.vmdk'], output=True, cwd='boxmod'))
+        virtual_size = info['virtual-size']
+        vboxinfo = run(['vboxmanage', 'showhdinfo', 'box-disk1.vmdk'], output=True, cwd='boxmod')
+        for line in vboxinfo.splitlines():
+            m = re.match(r'^UUID:\s+([a-z0-9-]+)\s*$', line)
+            if m:
+                disk_uuid = m.group(1)
+                break
+        else:
+            raise ValueError("vboxmanag showhdinfo did not return UUID?")
+
+        # Substitute variables to ovf
+        namespaces = {
+            'ovf': 'http://schemas.dmtf.org/ovf/envelope/1',
+            'vbox': 'http://www.virtualbox.org/ovf/machine',
+            'vssd': 'http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_VirtualSystemSettingData'
+        }
+        our_id = "ubuntu-cloudimg-trusty-vagrant-scipy-bench"
+        our_uuid = uuid.uuid4()
+        tree = lxml.etree.parse('boxmod/box.ovf')
+        if not is_64bit:
+            # Ensure longmode is disabled
+            cpu, = tree.xpath('//ovf:CPU', namespaces=namespaces)
+            for el in list(cpu.xpath('ovf:LongMode', namespaces=namespaces)):
+                cpu.remove(el)
+            lxml.etree.SubElement(cpu, '{%s}LongMode' % namespaces['ovf'], attrib=dict(enabled="false"))
+        disk, = tree.xpath('//ovf:Disk', namespaces=namespaces)
+        disk.attrib['{http://schemas.dmtf.org/ovf/envelope/1}capacity'] = str(virtual_size)
+        disk.attrib['{http://www.virtualbox.org/ovf/machine}uuid'] = disk_uuid
+        image, = tree.xpath('//ovf:Image', namespaces=namespaces)
+        image.attrib['uuid'] = '{' + disk_uuid + '}'
+        vsystem, = tree.xpath('//ovf:VirtualSystem', namespaces=namespaces)
+        vsystem.attrib['{http://schemas.dmtf.org/ovf/envelope/1}id'] = our_id
+        vsysid, = tree.xpath('//vssd:VirtualSystemIdentifier', namespaces=namespaces)
+        vsysid.text = our_id
+        machine, = tree.xpath('//vbox:Machine', namespaces=namespaces)
+        machine.attrib['name'] = our_id
+        machine.attrib['uuid'] = '{%s}' % (our_uuid,)
+        tree.write('boxmod/box.ovf')
+
+        # Generate output box
+        run(['tar', 'cf', '../%s.box' % (BOX_NAME,), '.'], cwd="boxmod")
+        shutil.rmtree('boxmod')
+
+        # Add to vagrant
+        run("vagrant box add {} {}.box".format(BOX_NAME, BOX_NAME))
+
+    def get_vm_image(self):
+        if is_vtx_available():
+            # can use 64-bit image
+            basefn = "trusty-server-cloudimg-amd64-vagrant-disk1.box"
+            is_64bit = True
+        else:
+            # fall back to 32-bit
+            basefn = "trusty-server-cloudimg-i386-vagrant-disk1.box"
+            is_64bit = False
+        url = "https://cloud-images.ubuntu.com/vagrant/trusty/current/" + basefn
+        return url, basefn, is_64bit
+
+    @contextmanager
+    def activate(self):
+        self.setup()
+        run(['vagrant', 'up'])
+        try:
+            yield
+        finally:
+            run(['vagrant', 'suspend'])
+
+    def run(self, cmd):
+        cmd = ['sudo', '--', '/usr/local/bin/run-cmd'] + cmd
+        run(['vagrant', 'ssh', '-c', " ".join(quote(x) for x in cmd)])
+
+
+class NoJail(object):
+    def setup(self, force=False):
+        pass
+
+    @contextmanager
+    def activate(self):
+        yield
+
+    def run(self, cmd):
+        cmd = [os.path.join(os.path.dirname(__file__), 'bin', 'run-cmd-user')] + cmd
+        run(cmd)
 
 
 class LockFile(object):
