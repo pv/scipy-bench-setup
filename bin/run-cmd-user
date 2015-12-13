@@ -27,7 +27,7 @@ update() {
 	f90cache -M 700M || true
     	git clone --depth 2 https://github.com/spacetelescope/asv.git "$HOME"/asv
     	pip install --user "$HOME/asv"
-    	pip install --upgrade --user --install-option="--no-cython-compile" Cython
+    	pip install --upgrade --user Cython
     fi
     git -C scipy fetch origin
     git -C scipy checkout master
@@ -84,6 +84,7 @@ function backtrace () {
 }
 trap 'backtrace' ERR
 
+rm -rf "$HOME/tmp"
 mkdir -p "$HOME" "$HOME/tmp"
 
 # Run command:

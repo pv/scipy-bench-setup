@@ -1,7 +1,4 @@
 # vim:syntax=apparmor
-# Last Modified: Tue Jun 09 14:34:12 2009
-# Author: Kees Cook <kees@canonical.com>
-#         Jamie Strandboge <jamie@canonical.com>
 
 #include <tunables/global>
 
@@ -9,6 +6,9 @@
   #include <abstractions/base>
   #include <abstractions/nameservice>
   #include <abstractions/python>
+
+  owner /dev/shm/ r,
+  owner /dev/shm/* rwmlk,
 
   # allow
   /home/benchmarker/scipy-bench-setup/bin/run-cmd-user r,
@@ -27,7 +27,9 @@
   /home/benchmarker/scipy-bench-setup/scipy-bench/results/** rw,
 
   /etc/mime.types r,
+  /etc/ld.so.conf r,
 
+  /usr/local/bin/f90cache rmix,
   /usr/local/lib/f90cache/ r,
   /usr/local/lib/f90cache/** rmix,
   /usr/lib/ccache/ r,
