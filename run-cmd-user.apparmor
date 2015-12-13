@@ -6,26 +6,44 @@
 #include <tunables/global>
 
 /home/benchmarker/scipy-bench-setup/bin/run-cmd-user {
+  #include <abstractions/base>
   #include <abstractions/nameservice>
   #include <abstractions/python>
 
-  # silence logging
-  deny /home/ r,
-  deny @{HOME}/ r,
+  # allow
+  /home/benchmarker/scipy-bench-setup/bin/run-cmd-user r,
+  /home/benchmarker/scipy-bench-setup/hostname r,
 
   # allowed points
   /home/benchmarker/scipy-bench-setup/var/ rw,
   /home/benchmarker/scipy-bench-setup/var/** rwklmix,
+  /home/benchmarker/scipy-bench-setup/doc/ rw,
+  /home/benchmarker/scipy-bench-setup/doc/** rw,
+  /home/benchmarker/scipy-bench-setup/html/ rw,
+  /home/benchmarker/scipy-bench-setup/html/** rw,
+  /home/benchmarker/scipy-bench-setup/results/ rw,
+  /home/benchmarker/scipy-bench-setup/results/** rw,
+  /home/benchmarker/scipy-bench-setup/scipy-bench/results/ rw,
+  /home/benchmarker/scipy-bench-setup/scipy-bench/results/** rw,
+
+  /etc/mime.types r,
+
+  /usr/local/lib/f90cache/ r,
+  /usr/local/lib/f90cache/** rmix,
+  /usr/lib/ccache/ r,
+  /usr/lib/ccache/** rmix,
+
+  /usr/include/ r,
+  /usr/include/** r,
+
+  /usr/share/python-wheels/ r,
+  /usr/share/python-wheels/** r,
 
   /usr/bin/ r,
   /usr/bin/* rmix,
   /bin/* rmix,
   /usr/lib/** rmix,
   /lib/** rmix,
-
-  unix peer=@{profile_name},
-  signal peer=@{profile_name},
-  ptrace (read, readby, trace) peer=@{profile_name},
 
   /proc/*/status r,
   /proc/*/auxv r,

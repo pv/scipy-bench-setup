@@ -18,11 +18,16 @@ update() {
 	git -C scipy submodule init
         ln -s "$DST"/results scipy/benchmarks/results
     fi
+    if test ! -f "$DST/hostname"; then
+        echo "Create file called 'hostname' containing the desired host name"
+        exit 1
+    fi
     if test ! -f "$HOME"/.local/bin/asv; then
-	ccache -M 700M
+	ccache -M 700M || true
+	f90cache -M 700M || true
     	git clone --depth 2 https://github.com/spacetelescope/asv.git "$HOME"/asv
     	pip install --user "$HOME/asv"
-    	pip install --upgrade --user Cython
+    	pip install --upgrade --user --install-option="--no-cython-compile" Cython
     fi
     git -C scipy fetch origin
     git -C scipy checkout master
@@ -31,6 +36,13 @@ update() {
     git -C scipy reset --hard origin/master
     git -C scipy submodule update
     git -C scipy clean -fdx build scipy doc
+    if test ! -f "$HOME/.asv-machine.json"; then
+        pushd scipy/benchmarks
+        while true; do echo; done | "$HOME"/.local/bin/asv machine
+        popd
+        M=`cat "$DST"/hostname`
+        sed -i -e "s/\"machine\": .*/\"machine\": \"$M\",/" "$HOME/.asv-machine.json"
+    fi
     popd
 }
 
