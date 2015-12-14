@@ -15,7 +15,7 @@ update() {
     pushd "$HOME"
     if test ! -d scipy; then
         git clone https://github.com/scipy/scipy.git scipy
-	git -C scipy submodule init
+        git -C scipy submodule init
         ln -s "$DST"/results scipy/benchmarks/results
     fi
     if test ! -f "$DST/hostname"; then
@@ -23,11 +23,25 @@ update() {
         exit 1
     fi
     if test ! -f "$HOME"/.local/bin/asv; then
-	ccache -M 700M || true
-	f90cache -M 700M || true
-    	git clone --depth 2 https://github.com/spacetelescope/asv.git "$HOME"/asv
-    	pip install --user "$HOME/asv"
-    	pip install --upgrade --user Cython
+        ccache -M 700M || true
+        f90cache -M 700M || true
+        git clone --depth 2 https://github.com/spacetelescope/asv.git "$HOME"/asv
+        pip install --user "$HOME/asv"
+        pip install --upgrade --user Cython
+        mv "$HOME/.local/bin/cython" "$HOME/.local/bin/cython.real"
+        cat <<__EOF__ > "$HOME/.local/bin/cython"
+#!/bin/bash
+$HOME/.local/bin/cython.real "$@"
+EXC=$?
+if test "$EXC" != "0"; then
+    # Fallback for old scipy versions...
+    sed -i -e 's/cpdef long int tell(self):/cpdef long int tell(self) except -1:/' streams.pyx
+    sed -i -e 's/cpdef long int tell(self):/cpdef long int tell(self) except -1:/' streams.pxd
+    exec $HOME/.local/bin/cython.real "$@"
+fi
+exit 0
+__EOF__
+        chmod +x "$HOME/.local/bin/cython"
     fi
     git -C scipy fetch origin
     git -C scipy checkout master
@@ -61,7 +75,7 @@ docs() {
     pushd "$HOME"/scipy/doc
     rm -rf ../build ../dist build dist
     if test "$1" != ""; then
-	git checkout "$1"
+        git checkout "$1"
     fi
     git clean -fdx . ../scipy
     ATLAS=None OPENBLAS_NUM_THREADS=1 PATH=/usr/lib/ccache:"$HOME"/.local/bin:$PATH make dist
