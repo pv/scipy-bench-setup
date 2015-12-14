@@ -30,6 +30,8 @@ def main():
     p = argparse.ArgumentParser(description=__doc__.strip())
     p.add_argument('-j', '--jail', action="store", dest="jail", default='vagrant',
                    help="jail to use", choices=('vagrant', 'cmd'))
+    p.add_argument('-l', '--lockfile', action="store", dest="lockfile", default='lockfile',
+                   help="filename of the lock file to use")
     sp = p.add_subparsers(dest="command", help="command to run")
     p_run = sp.add_parser('run',
         description=("Run benchmarks via ASV. This clones the scipy-bench repository "
@@ -65,7 +67,7 @@ def main():
         'cmd': NoJail,
     }
 
-    with main_lock():
+    with main_lock(args.lockfile):
         jail = jails[args.jail]()
 
         if args.command == 'setup':
@@ -119,11 +121,11 @@ def run_vm_asv(jail, cmd, upload=True):
 
 
 @contextmanager
-def main_lock():
-    lock = LockFile('lockfile')
+def main_lock(filename):
+    lock = LockFile(filename)
     if not lock.acquire(block=False):
         print("ERROR: another process is currently running")
-        print("Wait until it is done, or remove 'lockfile'")
+        print("Wait until it is done, or remove '{0}'".format(filename))
         sys.exit(1)
     try:
         yield
