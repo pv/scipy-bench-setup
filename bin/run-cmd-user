@@ -63,6 +63,8 @@ __EOF__
 benchmarks() {
     update
     pushd "$HOME"/scipy/benchmarks
+    sed -i -e 's/^    goal_time = 0.25/    goal_time = 0.25\n    timeout = 30\n    repeat = 1/' benchmarks/common.py
+    sed -i -e 's@"branches": .*,@"branches": ["master"],@' asv.conf.json
     while true; do echo; done | ATLAS=None OPENBLAS_NUM_THREADS=1 PATH="$HOME"/.local/bin:$PATH python run.py --current-repo "$@"
     PATH="$HOME"/.local/bin:$PATH python run.py --current-repo publish
     rm -rf "$DST"/html/*
