@@ -10,6 +10,7 @@ export PYTHONPATH="$HOME/.local/lib/python2.7"
 
 export TMPDIR="$HOME"/tmp
 
+export CCACHE_SLOPPINESS=file_macro,time_macros
 
 update() {
     pushd "$HOME"
