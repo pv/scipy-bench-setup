@@ -10,7 +10,13 @@ export PYTHONPATH="$HOME/.local/lib/python2.7"
 
 export TMPDIR="$HOME"/tmp
 
+export CCACHE_UNIFY=1
+
 export CCACHE_SLOPPINESS=file_macro,time_macros
+
+export OPT="-O2 -g0"
+
+export FOPT="-O2 -g0"
 
 update() {
     pushd "$HOME"
@@ -64,9 +70,14 @@ __EOF__
 benchmarks() {
     update
     pushd "$HOME"/scipy/benchmarks
-    sed -i -e 's/^    goal_time = 0.25/    goal_time = 0.25\n    timeout = 30/' benchmarks/common.py
+    sed -i -e 's/^    goal_time = 0.25/    goal_time = 0.25\n    timeout = 120/' benchmarks/common.py
     sed -i -e 's@"branches": .*,@"branches": ["master"],@' asv.conf.json
-    while true; do echo; done | ATLAS=None OPENBLAS_NUM_THREADS=1 PATH="$HOME"/.local/bin:$PATH python run.py --current-repo "$@"
+    sed -i -e 's@x.startswith("-Werror")@x.startswith("-Werror") or x.startswith("-g")@' run.py
+    if test "$SKIP_RUN" = "1"; then
+       true
+    else
+       while true; do echo; done | ATLAS=None OPENBLAS_NUM_THREADS=1 PATH="$HOME"/.local/bin:$PATH python run.py --current-repo "$@"
+    fi
     PATH="$HOME"/.local/bin:$PATH python run.py --current-repo publish
     rm -rf "$DST"/html/*
     rsync -a html/ "$DST"/html/
