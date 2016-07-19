@@ -49,6 +49,7 @@ update() {
 benchmarks() {
     update
     pushd "$HOME"/numpy/benchmarks
+    SKIP_RUN=${SKIP_RUN=}
     if test "$SKIP_RUN" = "1"; then
         true;
     else
