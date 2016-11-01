@@ -77,9 +77,9 @@ benchmarks() {
     if test "$SKIP_RUN" = "1"; then
        true
     else
-       while true; do echo; done | ATLAS=None OPENBLAS_NUM_THREADS=1 PATH="$HOME"/.local/bin:$PATH python run.py --current-repo "$@"
+       while true; do echo; done | ATLAS=None OPENBLAS_NUM_THREADS=1 PATH="$HOME"/.local/bin:$PATH python run.py "$@"
     fi
-    PATH="$HOME"/.local/bin:$PATH python run.py --current-repo publish
+    PATH="$HOME"/.local/bin:$PATH python run.py publish
     rm -rf "$DST"/html/*
     rsync -a html/ "$DST"/html/
     popd

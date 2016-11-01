@@ -22,8 +22,8 @@ update() {
 benchmarks() {
     update
     pushd /srv/runner/scipy/benchmarks
-    while true; do echo; done | sudo -H -u runner ATLAS=None OPENBLAS_NUM_THREADS=1 PATH=$PATH:/srv/runner/.local/bin python run.py --current-repo "$@"
-    sudo -H -u runner PATH=$PATH:/srv/runner/.local/bin python run.py --current-repo publish
+    while true; do echo; done | sudo -H -u runner ATLAS=None OPENBLAS_NUM_THREADS=1 PATH=$PATH:/srv/runner/.local/bin python run.py "$@"
+    sudo -H -u runner PATH=$PATH:/srv/runner/.local/bin python run.py publish
     rm -rf /srv/html/*
     rsync -a html/ /srv/html/
     popd
