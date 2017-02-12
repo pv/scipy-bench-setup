@@ -18,6 +18,8 @@ export OPT="-O2 -g0"
 
 export FOPT="-O2 -g0"
 
+export PIP_NO_BINARY=1
+
 update() {
     pushd "$HOME"
     if test ! -d scipy; then
@@ -70,7 +72,7 @@ __EOF__
 benchmarks() {
     update
     pushd "$HOME"/scipy/benchmarks
-    sed -i -e 's/^    goal_time = 0.25/    goal_time = 0.25\n    timeout = 120/' benchmarks/common.py
+    sed -i -e 's/^    goal_time = 0.25/    #goal_time = 0.25\n    timeout = 120/' benchmarks/common.py
     sed -i -e 's@"branches": .*,@"branches": ["master"],@' asv.conf.json
     sed -i -e 's@x.startswith("-Werror")@x.startswith("-Werror") or x.startswith("-g")@' run.py
     SKIP_RUN=${SKIP_RUN=}
