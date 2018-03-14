@@ -52,6 +52,7 @@ benchmarks() {
     update
     pushd "$HOME"/numpy/benchmarks
     sed -i -e 's/^    goal_time = 0.25/    pass#goal_time = 0.25/' benchmarks/common.py
+    cp -f "$HOME"/asv.conf.json asv.conf.json
     SKIP_RUN=${SKIP_RUN=}
     if test "$SKIP_RUN" = "1"; then
         true;
