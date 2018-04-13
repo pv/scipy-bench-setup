@@ -201,7 +201,7 @@ def _run_vm_asv(jail, cmd, upload=True):
         git reset --hard
         git clean -f -d -x
         rsync -a ../html/ ./
-        git add -f -u .
+        git add -f .
         git commit -m "Generated from sources"
         git push -f origin gh-pages
         """, cwd='numpy-bench-html', env=env)
