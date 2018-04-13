@@ -33,7 +33,6 @@ update() {
     	pip install --user "$HOME/asv"
     	pip install --upgrade --user Cython
     fi
-    git -C numpy fetch origin
     git -C numpy fetch origin --tags
     git -C numpy checkout master
     git -C numpy reset --hard origin/master
