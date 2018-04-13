@@ -198,6 +198,8 @@ def _run_vm_asv(jail, cmd, upload=True):
         run("""
         git branch -D gh-pages || true
         git checkout --orphan gh-pages
+        git reset --hard
+        git clean -f -d -x
         rsync -a ../html/ ./
         git add -f .
         git commit -m "Generated from sources"
