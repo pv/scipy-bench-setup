@@ -34,6 +34,7 @@ update() {
     	pip install --upgrade --user Cython
     fi
     git -C numpy fetch origin
+    git -C numpy fetch origin --tags
     git -C numpy checkout master
     git -C numpy reset --hard origin/master
     git -C numpy submodule update
@@ -57,7 +58,7 @@ benchmarks() {
     if test "$SKIP_RUN" = "1"; then
         true;
     else
-        while true; do echo; done | ATLAS=None OPENBLAS_NUM_THREADS=1 PATH="$HOME"/.local/bin:$PATH "$HOME"/.local/bin/asv "$@"
+        ATLAS=None OPENBLAS_NUM_THREADS=1 PATH="$HOME"/.local/bin:$PATH "$HOME"/.local/bin/asv "$@"
     fi
     PATH="$HOME"/.local/bin:$PATH "$HOME"/.local/bin/asv publish
     rm -rf "$DST"/html/*
