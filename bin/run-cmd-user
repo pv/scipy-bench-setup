@@ -52,7 +52,7 @@ exit 0
 __EOF__
         chmod +x "$HOME/.local/bin/cython"
     fi
-    git -C scipy fetch origin
+    git -C scipy fetch origin --tags
     git -C scipy checkout master
     git -C scipy branch -f maintenance/0.14.x origin/maintenance/0.14.x
     git -C scipy branch -f maintenance/0.15.x origin/maintenance/0.15.x
@@ -80,7 +80,7 @@ benchmarks() {
     if test "$SKIP_RUN" = "1"; then
        true
     else
-       while true; do echo; done | ATLAS=None OPENBLAS_NUM_THREADS=1 PATH="$HOME"/.local/bin:$PATH python run.py "$@"
+       ATLAS=None OPENBLAS_NUM_THREADS=1 PATH="$HOME"/.local/bin:$PATH python run.py "$@"
     fi
     PATH="$HOME"/.local/bin:$PATH python run.py publish
     rm -rf "$DST"/html/*
