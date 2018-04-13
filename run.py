@@ -44,7 +44,7 @@ def main():
         help="arguments to pass on to asv run")
     p_cron = sp.add_parser('cron',
         help="run cron job (benchmark new commits, output log file)",
-        description="Do './run.py run -e -k NEW > benchmark.log 2>&1'"
+        description="Do './run.py run -e -k NEW --steps 5 > benchmark.log 2>&1'"
         )
     p_populate = sp.add_parser('populate',
         help="run for several commits throughout the history",
@@ -91,7 +91,7 @@ def do_cron(jail):
     with open('benchmark.log', 'wb') as f:
         with redirect_stream(sys.stdout, f):
             with redirect_stream(sys.stderr, sys.stdout):
-                run_vm_asv(jail, ['run', '-k', '-e', 'NEW'])
+                run_vm_asv(jail, ['run', '-k', '-e', 'NEW', '--steps', '5'])
 
 
 def do_populate(jail):
