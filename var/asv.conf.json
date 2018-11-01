@@ -66,5 +66,9 @@
 
     "regressions_first_commits": {
        "io_matlab\\.StructArr\\..*": "67c089a6",  //  structarrs weren't properly implemented before this
+    },
+
+    "regressions_thresholds": {
+        ".*": 0.05
     }
 }
