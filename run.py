@@ -91,7 +91,7 @@ def do_cron(jail):
     with open('benchmark.log', 'wb') as f:
         with redirect_stream(sys.stdout, f):
             with redirect_stream(sys.stderr, sys.stdout):
-                run_vm_asv(jail, ['run', '--cpu-affinity=3', '-k', '-e', 'NEW', '--steps', '5'])
+                run_vm_asv(jail, ['run', '--cpu-affinity=3', '-k', '-e', 'NEW', '--steps', '11'])
 
 
 def do_populate(jail):
