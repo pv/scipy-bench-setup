@@ -6,14 +6,21 @@ export DST=$(realpath "$(dirname "$0")/..")
 
 export HOME="$DST/var"
 
-export PYTHONPATH="$HOME/.local/lib/python2.7"
-
 export TMPDIR="$HOME"/tmp
 
 export PATH="/usr/lib/ccache:/usr/local/lib/f90cache:$PATH"
 
-export PIP_NO_BINARY=1
+export CCACHE_UNIFY=1
 
+export CCACHE_SLOPPINESS=file_macro,time_macros
+
+export CCACHE_COMPRESS=1
+
+export OPT="-O2 -g0"
+
+export FOPT="-O2 -g0"
+
+export NPY_NUM_BUILD_JOBS=2
 
 update() {
     pushd "$HOME"
