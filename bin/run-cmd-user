@@ -77,7 +77,7 @@ benchmarks() {
     sed -i -e 's/^    goal_time = 0.25/    #goal_time = 0.25\n    timeout = 120/' benchmarks/common.py
     #sed -i -e 's@"branches": .*,@"branches": ["master"],@' asv.conf.json
     cp -f "$HOME"/asv.conf.json asv.conf.json
-    sed -i -e 's@x.startswith("-Werror")@x.startswith("-Werror") or x.startswith("-g")@' run.py
+    sed -i -e 's@x.startswith("-Werror")@x.startswith("-Werror") or x.startswith("-g") or x.startswith("-flto")@' run.py
     SKIP_RUN=${SKIP_RUN=}
     if test "$SKIP_RUN" = "1"; then
        true
