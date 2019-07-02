@@ -25,3 +25,20 @@ Running benchmarks::
 Daily cron::
 
     su -s /bin/sh -c "/PATH/TO/HERE/run.py cron" - USER
+
+
+Environment
+===========
+
+The scripts supports two approaches to the environment:
+
+1. Vagrant-based virtual machine ``run.py -j vagrant ...``
+
+2. No isolation ``run.py -j cmd ...``
+
+The VM based one uses settings from ``Vagrantfile`` and
+``bin/run-cmd-vagrant``.
+
+The "no isolation" approach runs commands via
+``bin/run-cmd-user``. You can however use an Apparmor profile (example
+in ``run-cmd-user.apparmor``) to sandbox it.

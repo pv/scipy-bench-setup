@@ -26,6 +26,12 @@
   /home/benchmarker/scipy-bench-setup/scipy-bench/results/ rw,
   /home/benchmarker/scipy-bench-setup/scipy-bench/results/** rw,
 
+  /etc/ r,
+  /etc/debian_version r,
+  /etc/lsb-release r,
+  /etc/os-release r,
+  /usr/lib/os-release r,
+
   /etc/mime.types r,
   /etc/ld.so.conf r,
 
