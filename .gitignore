@@ -1,10 +1,4 @@
 *~
-*.log
-*.box
-/.vagrant
 /deploy-key
 /deploy-key.pub
-/hostname
-/results
-/scipy-bench
-/html
+/workdir
