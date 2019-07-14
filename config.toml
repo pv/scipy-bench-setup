@@ -52,6 +52,8 @@ export REPO_URL="https://github.com/scipy/scipy.git"
 export REPO_SUBDIR="benchmarks"
 
 source "$HOME/asv-bwrap-scripts/preamble1.sh"
+export OPT="-O2 -g0 -fno-lto"
+export FOPT="-O2 -g0 -fno-lto"
 """
 
 # To run when setting up the sandbox the first time
