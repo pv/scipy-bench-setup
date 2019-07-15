@@ -54,6 +54,10 @@ export REPO_SUBDIR="benchmarks"
 source "$HOME/asv-bwrap-scripts/preamble1.sh"
 export OPT="-O2 -g0 -fno-lto"
 export FOPT="-O2 -g0 -fno-lto"
+
+mkdir -p "$HOME/include"
+echo '#include <locale.h>' > "$HOME/include/xlocale.h"
+export CPATH="$HOME/include"
 """
 
 # To run when setting up the sandbox the first time
