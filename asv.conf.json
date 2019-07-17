@@ -27,7 +27,7 @@
     // list indicates to just test against the default (latest)
     // version.
     "matrix": {
-        "numpy": ["1.16.4"],
+        "numpy": ["1.14.5"],
         "Tempita": ["0.5.2"],
         "Cython": ["0.29.12"],
         "pytest": [],
