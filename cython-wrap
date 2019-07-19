@@ -1,4 +1,10 @@
 #!/bin/bash
+
+if test -f qhull.pyx; then
+    # Patch old Scipy sources for Cython >=0.28 compatibility
+    sed -i -E -e '/^(Delaunay|Voronoi|ConvexHull)\.add_points\.__func__\.__doc__/d;' qhull.pyx
+fi
+
 $HOME/env/bin/cython.real "$@"
 EXC=$?
 if test "$EXC" != "0"; then
