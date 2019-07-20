@@ -21,7 +21,7 @@ ssh_key = "deploy-key"
 hostname = "atom"
 
 # List of files to copy to the sandbox directory (on each run)
-copy_files = ["asv.conf.json", "cython-wrap", "machine.json"]
+copy_files = ["asv.conf.json", "machine.json", "patch-old-scipy.py"]
 
 # List of directories and files to expose (read-only) inside the sandbox.
 expose = ["/etc/resolv.conf",
@@ -61,11 +61,7 @@ setup = """
 run python3 -mvenv env
 source env/bin/activate
 run pip install --upgrade "pip>=19" wheel
-run pip install asv virtualenv Cython==0.29.11
-
-mv env/bin/cython env/bin/cython.real
-mv -f cython-wrap env/bin/cython
-chmod +x env/bin/cython
+run pip install asv virtualenv Cython==0.29.12
 """
 
 # Default run script
@@ -78,6 +74,7 @@ source "$HOME/asv-bwrap-scripts/run1.sh"
 mv -f $HOME/machine.json $HOME/.asv-machine.json
 prepare_asv
 mv -f $HOME/asv.conf.json asv.conf.json
+mv -f $HOME/patch-old-scipy.py patch-old-scipy.py
 sed -i -e 's/class Benchmark(object):/class Benchmark(object):\\n    repeat = 1, 10, 2.0\\n    processes = 1/' benchmarks/common.py
 run time asv "$@"
 run time asv publish
