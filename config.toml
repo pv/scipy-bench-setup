@@ -79,7 +79,7 @@ mv -f $HOME/machine.json $HOME/.asv-machine.json
 prepare_asv
 mv -f $HOME/asv.conf.json asv.conf.json
 sed -i -e 's/class Benchmark(object):/class Benchmark:/' benchmarks/common.py
-sed -i -e 's/class Benchmark:/class Benchmark:\\n    repeat = 1, 10, 2.0\\n    processes = 1/' benchmarks/common.py
+sed -i -e 's/class Benchmark:/class Benchmark:\\n    repeat = 1, 10, 2.0\\n/' benchmarks/common.py
 run time asv "$@"
 run time asv publish
 copy_html
