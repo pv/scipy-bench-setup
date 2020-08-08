@@ -18,7 +18,7 @@ upload = "git@github.com:pv/scipy-bench.git"
 ssh_key = "deploy-key"
 
 # Hostname in sandbox. If not given, same as host.
-hostname = "atom"
+hostname = "i7"
 
 # List of files to copy to the sandbox directory (on each run)
 copy_files = ["asv.conf.json", "machine.json", "patch-old-scipy.py"]
