@@ -35,10 +35,10 @@
     "matrix": {
         "numpy": ["1.14.5"],
         "Tempita": ["0.5.2"],
-        "Cython": ["0.29.20"],
+        "Cython": ["0.29.21"],
         "pytest": [],
         "six": [],
-        "pybind11": ["2.3.0"],
+        "pybind11": ["2.5.0"],
     },
 
     // The directory (relative to the current directory) that benchmarks are
