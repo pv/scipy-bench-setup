@@ -77,6 +77,11 @@ mv -f $HOME/asv.conf.json asv.conf.json
 mv -f $HOME/patch-old-scipy.py patch-old-scipy.py
 sed -i -e 's/class Benchmark(object):/class Benchmark:/' benchmarks/common.py
 sed -i -e 's/class Benchmark:/class Benchmark:\\n    repeat = 1, 10, 2.0\\n/' benchmarks/common.py
+if [ "$1" == "xslow" ]; then
+    echo "SCIPY_XSLOW=1"
+    export SCIPY_XSLOW=1
+    shift
+fi
 run time asv "$@"
 run time asv publish
 copy_html
