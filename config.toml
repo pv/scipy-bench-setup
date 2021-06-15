@@ -49,6 +49,7 @@ preamble = """
 set -e -o pipefail
 
 export REPO_URL="https://github.com/scipy/scipy.git"
+export REPO_BRANCH="master"
 export REPO_SUBDIR="benchmarks"
 
 source "$HOME/asv-bwrap-scripts/preamble1.sh"
