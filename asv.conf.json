@@ -39,6 +39,7 @@
         "pytest": [],
         "six": [],
         "pybind11": ["2.5.0"],
+        "pythran": [],
     },
 
     // The directory (relative to the current directory) that benchmarks are
