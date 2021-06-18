@@ -83,6 +83,8 @@ if [ "$1" == "xslow" ]; then
     export SCIPY_XSLOW=1
     shift
 fi
+export SCIPY_GLOBAL_BENCH_NUMTRIALS=10
+export SCIPY_GLOBAL_BENCH=AMGM,Ackley03,Alpine02,Bird,Branin01,Branin02,Bukin02,CarromTable,Chichinadze,CosineMixture,CrossInTray,Damavandi,DeckkersAarts,DeflectedCorrugatedSpring,DropWave,Easom,ElAttarVidyasagarDutta,Exponential,HelicalValley,HolderTable,Hosaki,McCormick,Mishra01,Mishra02,Mishra06,Mishra10,PenHolder,Plateau,Price02,Quadratic,RotatedEllipse02,Schwefel26,Schwefel36,SixHumpCamel,Step,Step2,StyblinskiTang,TestTubeHolder,Treccani,Ursem01,VenterSobiezcczanskiSobieski,Vincent,Weierstrass,XinSheYang03,XinSheYang04,Zettl,Zirilli
 run time asv "$@"
 run time asv publish
 copy_html
